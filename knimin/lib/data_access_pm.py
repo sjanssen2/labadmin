@@ -167,3 +167,104 @@ def add_water_lot(name, notes=None):
         If a water lot of the same name already exists.
     """
     _add_object('water_lot', name, notes)
+
+
+def extract_dna_from_sample_plate(name, email, sample_plate_id,
+                                  extraction_robot_id, extraction_tool_id,
+                                  extraction_kit_lot_id, notes=None,
+                                  created_on=None):
+    """ Creates a new DNA plate for a given sample plate.
+
+    Parameters
+    ----------
+    name: str
+        The name for the new DNA plate.
+    email: str
+        The email from the user that creates the new DNA plate.
+    sample_plate_id: int
+        ID of the sample plate from which the DNA plate shall be extracted.
+    extraction_robot_id: int
+        ID of the used extraction robot.
+    extraction_tool_id: int
+        ID of the used extraction tool.
+    extraction_kit_lot_id: int
+        ID of the used extraction kit lot.
+    notes: str
+        Arbitrary notes. Optional.
+    created_on: str
+        A time stamp for the creation of the DNA plate.
+
+    Raises
+    ------
+    ValueError
+        If the name for the new DNA plate is missing or empty.
+    LabadminDBUnknownIDError
+        If no user with the given email exists.
+    LabadminDBDuplicateError
+        If the given object IDs do not exist: sample_plate_id,
+        extraction_robot_id, extraction_tool_id or extraction_kit_lot_id.
+    """
+    # ensure that the object name is not empty
+    if not name or len(name) <= 0:
+        raise ValueError('The dna_plate name cannot be empty.')
+
+    with TRN:
+        # check if an object with the same name already exists
+        sql = """SELECT name FROM pm.dna_plate WHERE name = %s"""
+        TRN.add(sql, [name])
+        if len(TRN.execute_fetchindex()) > 0:
+            raise LabadminDBDuplicateError('pm.dna_plate',
+                                           'name: %s' % name)
+
+        # check that email is an existing user in the system
+        sql = """SELECT email FROM ag.labadmin_users WHERE email = %s"""
+        TRN.add(sql, [email])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(email, 'ag.labadmin_users')
+
+        # check that sample_plate with this ID already exists
+        sql = """SELECT sample_plate_id FROM pm.sample_plate
+                 WHERE sample_plate_id = %s"""
+        TRN.add(sql, [sample_plate_id])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(sample_plate_id, 'pm.sample_plate')
+
+        # check that extraction_robot with this ID already exists
+        sql = """SELECT extraction_robot_id FROM pm.extraction_robot
+                 WHERE extraction_robot_id = %s"""
+        TRN.add(sql, [extraction_robot_id])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(extraction_robot_id,
+                                           'pm.extraction_robot')
+
+        # check that extraction_tool with this ID already exists
+        sql = """SELECT extraction_tool_id FROM pm.extraction_tool
+                 WHERE extraction_tool_id = %s"""
+        TRN.add(sql, [extraction_tool_id])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(extraction_tool_id,
+                                           'pm.extraction_tool')
+
+        # check that extraction_kit with this ID already exists
+        sql = """SELECT extraction_kit_lot_id FROM pm.extraction_kit_lot
+                 WHERE extraction_kit_lot_id = %s"""
+        TRN.add(sql, [extraction_kit_lot_id])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(extraction_kit_lot_id,
+                                           'pm.extraction_kit_lot')
+
+        # add the new object into the DB
+        sql = """INSERT INTO pm.dna_plate (name,
+                                           email,
+                                           created_on,
+                                           sample_plate_id,
+                                           extraction_robot_id,
+                                           extraction_kit_lot_id,
+                                           extraction_tool_id,
+                                           notes)
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                 RETURNING dna_plate_id"""
+        TRN.add(sql, [name, email, created_on, sample_plate_id,
+                      extraction_robot_id, extraction_kit_lot_id,
+                      extraction_tool_id, notes])
+        TRN.execute()

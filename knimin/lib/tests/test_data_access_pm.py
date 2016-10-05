@@ -44,12 +44,20 @@ class TestDataAccessPM(TestCase):
             TRN.add(sql, ['007ABC'])
             TRN.execute()
 
+        # test_extract_dna_from_sample_plate
+        with TRN:
+            sql = """DELETE FROM pm.dna_plate
+                     WHERE name = %s"""
+            TRN.add(sql, ['dna11'])
+            TRN.execute()
+
     def setUp(self):
         db.add_processing_robot = add_processing_robot
         db.add_tm300_8_tool = add_tm300_8_tool
         db.add_tm50_8_tool = add_tm50_8_tool
         db.add_water_lot = add_water_lot
         db.add_master_mix_lot = add_master_mix_lot
+        db.extract_dna_from_sample_plate = extract_dna_from_sample_plate
 
     def test__add_object(self):
         # test check for table existence
@@ -186,6 +194,48 @@ class TestDataAccessPM(TestCase):
                                 db.add_water_lot,
                                 name,
                                 'some notes')
+
+    def test_extract_dna_from_sample_plate(self):
+        self.assertRaisesRegexp(ValueError,
+                                'The dna_plate name cannot be empty.',
+                                db.extract_dna_from_sample_plate,
+                                None,
+                                'test', '1', '', '', '')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%s' does not" % 'noUser',
+                                db.extract_dna_from_sample_plate,
+                                'dna1', 'noUser', '', '', '', '')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.extract_dna_from_sample_plate,
+                                'dna1', 'test', 99999, '', '', '')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.extract_dna_from_sample_plate,
+                                'dna1', 'test', 1, 99999, '', '')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.extract_dna_from_sample_plate,
+                                'dna1', 'test', 1, 1, 99999, '')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.extract_dna_from_sample_plate,
+                                'dna1', 'test', 1, 1, 1, 99999)
+
+        # add a new dna_plate
+        db.extract_dna_from_sample_plate('dna11', 'test', 1, 1, 1, 1,
+                                         'my first dna plate', 'Jan-08-1999')
+
+        self.assertRaisesRegexp(LabadminDBDuplicateError,
+                                "already exists.",
+                                db.extract_dna_from_sample_plate,
+                                'dna11', 'test', 1, 1, 1, 1,
+                                'my first dna plate', 'Jan-08-1999')
 
 if __name__ == "__main__":
     main()

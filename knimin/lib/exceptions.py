@@ -69,14 +69,14 @@ class LabadminDBDuplicateError(LabadminDBError):
 #     pass
 #
 #
-# class LabadminDBUnknownIDError(LabadminDBError):
-#     """Exception for error when an object does not exists in the DB"""
-#     def __init__(self, missing_id, table):
-#         super(LabadminDBUnknownIDError, self).__init__()
-#         self.args = ("The object with ID '%s' does not exists in table '%s'"
-#                      % (missing_id, table),)
-#
-#
+class LabadminDBUnknownIDError(LabadminDBError):
+    """Exception for error when an object does not exists in the DB"""
+    def __init__(self, missing_id, table):
+        super(LabadminDBUnknownIDError, self).__init__()
+        self.args = ("The object with ID '%s' does not exists in table '%s'"
+                     % (missing_id, table),)
+
+
 # class LabadminDBDuplicateHeaderError(LabadminDBError):
 #     """Exception for error when a MetadataTemplate has duplicate columns"""
 #     def __init__(self, repeated_headers):
