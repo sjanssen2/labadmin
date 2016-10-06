@@ -1,4 +1,5 @@
 from unittest import TestCase, main
+from datetime import datetime
 
 from knimin import db
 from knimin.lib.data_access_pm import *
@@ -61,6 +62,12 @@ class TestDataAccessPM(TestCase):
             TRN.add(sql, ['ut_protocol1'])
             TRN.execute()
 
+        # test_get_dna_plate
+        with TRN:
+            sql = """DELETE FROM pm.dna_plate WHERE name = %s"""
+            TRN.add(sql, ['ut_dnaR'])
+            TRN.execute()
+
     def setUp(self):
         db.add_processing_robot = add_processing_robot
         db.add_tm300_8_tool = add_tm300_8_tool
@@ -69,6 +76,7 @@ class TestDataAccessPM(TestCase):
         db.add_master_mix_lot = add_master_mix_lot
         db.extract_dna_from_sample_plate = extract_dna_from_sample_plate
         db.remove_dna_plate = remove_dna_plate
+        db.get_dna_plate = get_dna_plate
 
     def test__add_object(self):
         # test check for table existence
@@ -279,6 +287,22 @@ class TestDataAccessPM(TestCase):
                                 db.remove_dna_plate,
                                 dna_plate_id)
 
+    def test_get_dna_plate(self):
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.get_dna_plate,
+                                99999)
+
+        # add a DNA plate
+        dna_plate_id = db.extract_dna_from_sample_plate('ut_dnaR', 'test', 1,
+                                                        1, 1, 1,
+                                                        'my first dna plate',
+                                                        'Jan-08-1999')
+
+        self.assertEqual(db.get_dna_plate(dna_plate_id),
+                         (dna_plate_id, 'ut_dnaR', 'test',
+                          datetime(1999, 1, 8,), 1, 1, 1, 1,
+                          'my first dna plate'))
 
 if __name__ == "__main__":
     main()

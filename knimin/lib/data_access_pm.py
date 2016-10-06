@@ -71,7 +71,7 @@ def _add_object(tbl_name, name, notes=None):
                  VALUES (%s, %s)
                  RETURNING """+tbl_name+"""_id"""
         TRN.add(sql, [name, notes])
-        return TRN.execute_fetchindex()[0][0]
+        return int(TRN.execute_fetchindex()[0][0])
 
 
 def add_master_mix_lot(name, notes=None):
@@ -302,24 +302,24 @@ def extract_dna_from_sample_plate(name, email, sample_plate_id,
         TRN.add(sql, [name, email, created_on, sample_plate_id,
                       extraction_robot_id, extraction_kit_lot_id,
                       extraction_tool_id, notes])
-        return TRN.execute_fetchindex()[0][0]
+        return int(TRN.execute_fetchindex()[0][0])
 
 
 def remove_dna_plate(dna_plate_id):
     """ Removes a DNA plate, if no library plate uses it.
 
-        Parameters
-        ----------
-        dna_plate_id: int
-            ID of the DNA plate to be deleted.
+    Parameters
+    ----------
+    dna_plate_id: int
+        ID of the DNA plate to be deleted.
 
-        Raises
-        ------
-        LabadminDBUnknownIDError
-            If no DNA plate with the given dna_plate_id exists.
-        LabadminDBArtifactDeletionError
-            If DNA plate cannot be deleted, because existing library plates
-            are using it.
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If no DNA plate with the given dna_plate_id exists.
+    LabadminDBArtifactDeletionError
+        If DNA plate cannot be deleted, because existing library plates
+        are using it.
     """
 
     with TRN:
@@ -342,3 +342,50 @@ def remove_dna_plate(dna_plate_id):
         sql = """DELETE FROM pm.dna_plate WHERE dna_plate_id = %s"""
         TRN.add(sql, [dna_plate_id])
         TRN.execute()
+
+
+def get_dna_plate(dna_plate_id):
+    """ Retrieves data of a DNA plate.
+
+    Parameters
+    ----------
+    dna_plate_id: int
+        The ID of an existing DNA plate.
+
+    Returns
+    -------
+    (int, str, str, datetime.datetime, int, int, int, int, str)
+        All information about the DNA plate:
+        1) dna_plate_id: int
+        2) name: str
+        3) email: str
+        4) created_on: datetime.datetime
+        5) sample_plate_id: int
+        6) extraction_robot_id: int
+        7) extraction_kit_lot_id: int
+        8) extraction_tool_id: int
+        9) notes: str
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If the given dna_plate_id does not exist.
+    """
+
+    with TRN:
+        # check that DNA plate exists
+        sql = """SELECT dna_plate_id FROM pm.dna_plate
+                 WHERE dna_plate_id = %s"""
+        TRN.add(sql, [dna_plate_id])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(dna_plate_id, 'pm.dna_plate')
+
+        # retriev entry and return it
+        sql = """SELECT * FROM pm.dna_plate WHERE dna_plate_id = %s"""
+        TRN.add(sql, [dna_plate_id])
+        dna_plate_id, name, email, created_on, sample_plate_id,\
+            extraction_robot_id, extraction_kit_lot_id,\
+            extraction_tool_id, notes = TRN.execute_fetchindex()[0]
+        return (int(dna_plate_id), name, email, created_on,
+                int(sample_plate_id), int(extraction_robot_id),
+                int(extraction_kit_lot_id), int(extraction_tool_id), notes)
