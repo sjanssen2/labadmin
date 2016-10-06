@@ -13,42 +13,42 @@ class TestDataAccessPM(TestCase):
         with TRN:
             sql = """DELETE FROM pm.processing_robot
                      WHERE name = %s"""
-            TRN.add(sql, ['robi2'])
+            TRN.add(sql, ['ut_robi2'])
             TRN.execute()
 
         # add_processing_robot
         with TRN:
             sql = """DELETE FROM pm.processing_robot
                      WHERE name = %s"""
-            TRN.add(sql, ['robi1'])
+            TRN.add(sql, ['ut_robi1'])
             TRN.execute()
 
         # test_add_tm300_8_tool
         with TRN:
             sql = """DELETE FROM pm.tm300_8_tool
                      WHERE name = %s"""
-            TRN.add(sql, ['007ABC'])
+            TRN.add(sql, ['ut_007ABC'])
             TRN.execute()
 
         # test_add_tm50_8_tool
         with TRN:
             sql = """DELETE FROM pm.tm50_8_tool
                      WHERE name = %s"""
-            TRN.add(sql, ['007ABC'])
+            TRN.add(sql, ['ut_007ABC'])
             TRN.execute()
 
         # test_add_water_lot
         with TRN:
             sql = """DELETE FROM pm.water_lot
                      WHERE name = %s"""
-            TRN.add(sql, ['007ABC'])
+            TRN.add(sql, ['ut_007ABC'])
             TRN.execute()
 
         # test_extract_dna_from_sample_plate
         with TRN:
             sql = """DELETE FROM pm.dna_plate
                      WHERE name = %s"""
-            TRN.add(sql, ['dna11'])
+            TRN.add(sql, ['ut_dna11'])
             TRN.execute()
 
         # test_remove_dna_plate
@@ -76,7 +76,7 @@ class TestDataAccessPM(TestCase):
                                 'does not exist in data base.',
                                 _add_object,
                                 'p1rocessing_robot',
-                                'robi2',
+                                'ut_robi2',
                                 'some notes')
 
         # test check for table design
@@ -84,16 +84,16 @@ class TestDataAccessPM(TestCase):
                                 'does not have the expected column',
                                 _add_object,
                                 'dna_plate',
-                                'robi2',
+                                'ut_robi2',
                                 'some notes')
         # regular addition
-        _add_object('processing_robot', 'robi2', 'some notes')
+        _add_object('processing_robot', 'ut_robi2', 'some notes')
         # check that duplicates cannot be added
         self.assertRaisesRegexp(LabadminDBDuplicateError,
                                 'already exists.',
                                 _add_object,
                                 'processing_robot',
-                                'robi2',
+                                'ut_robi2',
                                 'some notes')
 
     def test_add_processing_robot(self):
@@ -108,7 +108,7 @@ class TestDataAccessPM(TestCase):
                                 '',
                                 'some notes')
         # add a master mix lot
-        name = 'robi1'
+        name = 'ut_robi1'
         db.add_master_mix_lot(name, 'some notes')
         # indirect test if the upper statement could add the robot, since it
         # cannot be added twice with the same name.
@@ -130,7 +130,7 @@ class TestDataAccessPM(TestCase):
                                 '',
                                 'some notes')
         # add a processing robot
-        name = 'robi1'
+        name = 'ut_robi1'
         db.add_processing_robot(name, 'some notes')
         # indirect test if the upper statement could add the robot, since it
         # cannot be added twice with the same name.
@@ -152,7 +152,7 @@ class TestDataAccessPM(TestCase):
                                 '',
                                 'some notes')
         # add a TM 300-8 tool
-        name = '007ABC'
+        name = 'ut_007ABC'
         db.add_tm300_8_tool(name, 'some notes')
         # indirect test if the upper statement could add the tool, since it
         # cannot be added twice with the same name.
@@ -174,7 +174,7 @@ class TestDataAccessPM(TestCase):
                                 '',
                                 'some notes')
         # add a TM 50-8 tool
-        name = '007ABC'
+        name = 'ut_007ABC'
         db.add_tm50_8_tool(name, 'some notes')
         # indirect test if the upper statement could add the tool, since it
         # cannot be added twice with the same name.
@@ -196,7 +196,7 @@ class TestDataAccessPM(TestCase):
                                 '',
                                 'some notes')
         # add a water_lot
-        name = '007ABC'
+        name = 'ut_007ABC'
         db.add_water_lot(name, 'some notes')
         # indirect test if the upper statement could add the tool, since it
         # cannot be added twice with the same name.
@@ -239,13 +239,13 @@ class TestDataAccessPM(TestCase):
                                 'dna1', 'test', 1, 1, 1, 99999)
 
         # add a new dna_plate
-        db.extract_dna_from_sample_plate('dna11', 'test', 1, 1, 1, 1,
+        db.extract_dna_from_sample_plate('ut_dna11', 'test', 1, 1, 1, 1,
                                          'my first dna plate', 'Jan-08-1999')
 
         self.assertRaisesRegexp(LabadminDBDuplicateError,
                                 "already exists.",
                                 db.extract_dna_from_sample_plate,
-                                'dna11', 'test', 1, 1, 1, 1,
+                                'ut_dna11', 'test', 1, 1, 1, 1,
                                 'my first dna plate', 'Jan-08-1999')
 
     def test_remove_dna_plate(self):
