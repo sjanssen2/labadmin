@@ -49,11 +49,11 @@ class LabadminDBError(LabadminError):
 #         self.args = ("Cannot create artifact: %s" % reason,)
 #
 #
-# class LabadminDBArtifactDeletionError(LabadminDBError):
-#     """Exception when deleting an artifact"""
-#     def __init__(self, a_id, reason):
-#         super(LabadminDBArtifactDeletionError, self).__init__()
-#         self.args = ("Cannot delete artifact %d: %s" % (a_id, reason),)
+class LabadminDBArtifactDeletionError(LabadminDBError):
+    """Exception when deleting an artifact"""
+    def __init__(self, a_id, reason):
+        super(LabadminDBArtifactDeletionError, self).__init__()
+        self.args = ("Cannot delete artifact %d: %s" % (a_id, reason),)
 
 
 class LabadminDBDuplicateError(LabadminDBError):

@@ -51,6 +51,16 @@ class TestDataAccessPM(TestCase):
             TRN.add(sql, ['dna11'])
             TRN.execute()
 
+        # test_remove_dna_plate
+        with TRN:
+            sql = """DELETE FROM pm.library_plate WHERE name = %s"""
+            TRN.add(sql, ['ut_libplate'])
+            sql = """DELETE FROM pm.dna_plate WHERE name = %s"""
+            TRN.add(sql, ['ut_dnaR'])
+            sql = """DELETE FROM pm.protocol WHERE name = %s"""
+            TRN.add(sql, ['ut_protocol1'])
+            TRN.execute()
+
     def setUp(self):
         db.add_processing_robot = add_processing_robot
         db.add_tm300_8_tool = add_tm300_8_tool
@@ -58,6 +68,7 @@ class TestDataAccessPM(TestCase):
         db.add_water_lot = add_water_lot
         db.add_master_mix_lot = add_master_mix_lot
         db.extract_dna_from_sample_plate = extract_dna_from_sample_plate
+        db.remove_dna_plate = remove_dna_plate
 
     def test__add_object(self):
         # test check for table existence
@@ -236,6 +247,42 @@ class TestDataAccessPM(TestCase):
                                 db.extract_dna_from_sample_plate,
                                 'dna11', 'test', 1, 1, 1, 1,
                                 'my first dna plate', 'Jan-08-1999')
+
+    def test_remove_dna_plate(self):
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.remove_dna_plate,
+                                99999)
+
+        # add a DNA plate
+        db.extract_dna_from_sample_plate('ut_dnaR', 'test', 1, 1, 1, 1,
+                                         'my first dna plate', 'Jan-08-1999')
+        # obtain the new DNA plate's ID
+        with TRN:
+            sql = """SELECT dna_plate_id FROM pm.dna_plate
+                     WHERE name = %s"""
+            TRN.add(sql, ['ut_dnaR'])
+            dna_plate_id = int(TRN.execute_fetchindex()[0][0])
+
+            # make sure a protocol exists
+            sql = """INSERT INTO pm.protocol (name) VALUES (%s)
+                     RETURNING protocol_id"""
+            TRN.add(sql, ['ut_protocol1'])
+            protocol_id = TRN.execute_fetchindex()[0][0]
+
+            # add a new libarary plate, that uses the DNA plate
+            sql = """INSERT INTO pm.library_plate
+                     (name, email, dna_plate_id, protocol_id)
+                     VALUES (%s, %s, %s,%s) RETURNING library_plate_id"""
+            TRN.add(sql, ['ut_libplate', 'test', dna_plate_id, protocol_id])
+            library_plate_id = TRN.execute_fetchindex()[0][0]
+
+        # check that DNA plate cannot be deleted if used by any library plate
+        self.assertRaisesRegexp(LabadminDBArtifactDeletionError,
+                                "Cannot delete artifact",
+                                db.remove_dna_plate,
+                                dna_plate_id)
+
 
 if __name__ == "__main__":
     main()

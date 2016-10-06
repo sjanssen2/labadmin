@@ -268,3 +268,42 @@ def extract_dna_from_sample_plate(name, email, sample_plate_id,
                       extraction_robot_id, extraction_kit_lot_id,
                       extraction_tool_id, notes])
         TRN.execute()
+
+
+def remove_dna_plate(dna_plate_id):
+    """ Removes a DNA plate, if no library plate uses it.
+
+        Parameters
+        ----------
+        dna_plate_id: int
+            ID of the DNA plate to be deleted.
+
+        Raises
+        ------
+        LabadminDBUnknownIDError
+            If no DNA plate with the given dna_plate_id exists.
+        LabadminDBArtifactDeletionError
+            If DNA plate cannot be deleted, because existing library plates
+            are using it.
+    """
+
+    with TRN:
+        # check that DNA plate exists
+        sql = """SELECT dna_plate_id FROM pm.dna_plate
+                 WHERE dna_plate_id = %s"""
+        TRN.add(sql, [dna_plate_id])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(dna_plate_id, 'pm.dna_plate')
+
+        # check that DNA plate is not used by any library plate
+        sql = """SELECT library_plate_id FROM pm.library_plate
+                 WHERE dna_plate_id = %s"""
+        TRN.add(sql, [dna_plate_id])
+        if len(TRN.execute_fetchindex()) > 0:
+            raise LabadminDBArtifactDeletionError(dna_plate_id,
+                                                  ('since existing library '
+                                                   'plates are using it.'))
+
+        sql = """DELETE FROM pm.dna_plate WHERE dna_plate_id = %s"""
+        TRN.add(sql, [dna_plate_id])
+        TRN.execute()
