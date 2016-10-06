@@ -139,7 +139,8 @@ class TestDataAccessPM(TestCase):
                                 _get_objects,
                                 'dna_plate')
         # regular get
-        self.assertIn([1L, 'HOWE_KF1', None], _get_objects('extraction_robot'))
+        self.assertIn({'extraction_robot_id': 1L, 'notes': None,
+                       'name': 'HOWE_KF1'}, _get_objects('extraction_robot'))
 
     def test_add_master_mix_lot(self):
         self.assertRaisesRegexp(ValueError,
@@ -164,7 +165,9 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_master_mix_lots(self):
-        self.assertEqual([[1L, '14459', None]], db.get_master_mix_lots())
+        self.assertEqual([
+            {'notes': None, 'master_mix_lot_id': 1L, 'name': '14459'}],
+            db.get_master_mix_lots())
 
     def test_add_processing_robot(self):
         self.assertRaisesRegexp(ValueError,
@@ -189,10 +192,12 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_processing_robots(self):
-        self.assertEqual([[1L, 'ROBE', None],
-                          [2L, 'RIKE', None],
-                          [3L, 'JERE', None],
-                          [4L, 'CARMEN', None]], db.get_processing_robots())
+        self.assertEqual([
+            {'notes': None, 'name': 'ROBE', 'processing_robot_id': 1L},
+            {'notes': None, 'name': 'RIKE', 'processing_robot_id': 2L},
+            {'notes': None, 'name': 'JERE', 'processing_robot_id': 3L},
+            {'notes': None, 'name': 'CARMEN', 'processing_robot_id': 4L}],
+            db.get_processing_robots())
 
     def test_add_tm300_8_tool(self):
         self.assertRaisesRegexp(ValueError,
@@ -217,10 +222,12 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_tm300_8_tools(self):
-        self.assertEqual([[1L, '208484Z', None],
-                          [2L, '311318B', None],
-                          [3L, '109375A', None],
-                          [4L, '3076189', None]], db.get_tm300_8_tools())
+        self.assertEqual([
+            {'tm300_8_tool_id': 1L, 'notes': None, 'name': '208484Z'},
+            {'tm300_8_tool_id': 2L, 'notes': None, 'name': '311318B'},
+            {'tm300_8_tool_id': 3L, 'notes': None, 'name': '109375A'},
+            {'tm300_8_tool_id': 4L, 'notes': None, 'name': '3076189'}],
+            db.get_tm300_8_tools())
 
     def test_add_tm50_8_tool(self):
         self.assertRaisesRegexp(ValueError,
@@ -245,10 +252,12 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_tm50_8_tools(self):
-        self.assertEqual([[1L, '108364Z', None],
-                          [2L, '311426B', None],
-                          [3L, '311441B', None],
-                          [4L, '409172Z', None]], db.get_tm50_8_tools())
+        self.assertEqual([
+            {'notes': None, 'tm50_8_tool_id': 1L, 'name': '108364Z'},
+            {'notes': None, 'tm50_8_tool_id': 2L, 'name': '311426B'},
+            {'notes': None, 'tm50_8_tool_id': 3L, 'name': '311441B'},
+            {'notes': None, 'tm50_8_tool_id': 4L, 'name': '409172Z'}],
+            db.get_tm50_8_tools())
 
     def test_add_water_lot(self):
         self.assertRaisesRegexp(ValueError,
@@ -273,7 +282,8 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_water_lots(self):
-        self.assertEqual([[1L, 'RNBD9959', None]], db.get_water_lots())
+        self.assertEqual([{'notes': None, 'water_lot_id': 1L,
+                           'name': 'RNBD9959'}], db.get_water_lots())
 
     def test_extract_dna_from_sample_plate(self):
         self.assertRaisesRegexp(ValueError,
@@ -359,11 +369,13 @@ class TestDataAccessPM(TestCase):
                                                         1, 1, 1,
                                                         'my first dna plate',
                                                         'Jan-08-1999')
-
-        self.assertEqual(db.get_dna_plate(dna_plate_id),
-                         (dna_plate_id, 'ut_dnaR', 'test',
-                          datetime(1999, 1, 8,), 1, 1, 1, 1,
-                          'my first dna plate'))
+        self.assertEqual({
+            'sample_plate_id': 1L, 'name': 'ut_dnaR',
+            'extraction_kit_lot_id': 1L, 'extraction_robot_id': 1L,
+            'notes': 'my first dna plate', 'dna_plate_id': dna_plate_id,
+            'created_on': datetime(1999, 1, 8, 0, 0),
+            'extraction_tool_id': 1L, 'email': 'test'},
+            db.get_dna_plate(dna_plate_id))
 
     def test_update_dna_plate(self):
         # add tow DNA plates
@@ -426,10 +438,13 @@ class TestDataAccessPM(TestCase):
 
         db.update_dna_plate(dna_plate_id1, 'ut_dnaX', 'test', 1, 1, 1, 1,
                             'my third dna plate', 'Feb-08-1999')
-        self.assertEqual(db.get_dna_plate(dna_plate_id1),
-                         (dna_plate_id1, 'ut_dnaX', 'test',
-                          datetime(1999, 2, 8,), 1, 1, 1, 1,
-                          'my third dna plate'))
+
+        self.assertEqual({
+            'sample_plate_id': 1L, 'name': 'ut_dnaX',
+            'extraction_kit_lot_id': 1L, 'extraction_robot_id': 1L,
+            'notes': 'my third dna plate', 'dna_plate_id': dna_plate_id1,
+            'created_on': datetime(1999, 2, 8, 0, 0), 'extraction_tool_id': 1L,
+            'email': 'test'}, db.get_dna_plate(dna_plate_id1))
 
 
 if __name__ == "__main__":

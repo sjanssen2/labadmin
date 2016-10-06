@@ -113,7 +113,7 @@ def _get_objects(tbl_name):
 
     Returns
     -------
-    [[object_id, name:str, notes:str]]
+    list of dicts per row: [{object_id:int, name:str, notes:str}]
 
     Raises
     ------
@@ -145,7 +145,7 @@ def _get_objects(tbl_name):
 
         sql = """SELECT * FROM pm.""" + tbl_name
         TRN.add(sql, [])
-        return TRN.execute_fetchindex()
+        return [dict(x) for x in TRN.execute_fetchindex()]
 
 
 def add_master_mix_lot(name, notes=None):
@@ -178,7 +178,7 @@ def get_master_mix_lots():
 
     Returns
     -------
-    [[master_mix_lot_id, name:str, notes:str]]
+    List of dicts per row: [{master_mix_lot_id:int, name:str, notes:str}]
     """
     return _get_objects('master_mix_lot')
 
@@ -213,7 +213,7 @@ def get_processing_robots():
 
     Returns
     -------
-    [[processing_robot_id, name:str, notes:str]]
+    List of dicts per row: [{processing_robot_id:int, name:str, notes:str}]
     """
     return _get_objects('processing_robot')
 
@@ -248,7 +248,7 @@ def get_tm300_8_tools():
 
     Returns
     -------
-    [[tm300_8_tool_id, name:str, notes:str]]
+    List of dicts per row: [{tm300_8_tool_id:int, name:str, notes:str}]
     """
     return _get_objects('tm300_8_tool')
 
@@ -283,7 +283,7 @@ def get_tm50_8_tools():
 
     Returns
     -------
-    [[tm50_8_tool_id, name:str, notes:str]]
+    List of dicts per row: [{tm50_8_tool_id:int, name:str, notes:str}]
     """
     return _get_objects('tm50_8_tool')
 
@@ -318,7 +318,7 @@ def get_water_lots():
 
     Returns
     -------
-    [[water_lot_id, name:str, notes:str]]
+    List of dicts per row: [{water_lot_id:int, name:str, notes:str}]
     """
     return _get_objects('water_lot')
 
@@ -478,17 +478,16 @@ def get_dna_plate(dna_plate_id):
 
     Returns
     -------
-    (int, str, str, datetime.datetime, int, int, int, int, str)
-        All information about the DNA plate:
-        1) dna_plate_id: int
-        2) name: str
-        3) email: str
-        4) created_on: datetime.datetime
-        5) sample_plate_id: int
-        6) extraction_robot_id: int
-        7) extraction_kit_lot_id: int
-        8) extraction_tool_id: int
-        9) notes: str
+    A dict for a DNA plate with the following keys:
+        'sample_plate_id': int,
+        'name': str,
+        'extraction_kit_lot_id': int,
+        'extraction_robot_id': int,
+        'notes': str,
+        'dna_plate_id': int,
+        'created_on': datetime,
+        'extraction_tool_id': int,
+        'email': str
 
     Raises
     ------
@@ -507,12 +506,7 @@ def get_dna_plate(dna_plate_id):
         # retrieve entry and return it
         sql = """SELECT * FROM pm.dna_plate WHERE dna_plate_id = %s"""
         TRN.add(sql, [dna_plate_id])
-        dna_plate_id, name, email, created_on, sample_plate_id,\
-            extraction_robot_id, extraction_kit_lot_id,\
-            extraction_tool_id, notes = TRN.execute_fetchindex()[0]
-        return (int(dna_plate_id), name, email, created_on,
-                int(sample_plate_id), int(extraction_robot_id),
-                int(extraction_kit_lot_id), int(extraction_tool_id), notes)
+        return [dict(x) for x in TRN.execute_fetchindex()][0]
 
 
 def update_dna_plate(dna_plate_id, name, email, sample_plate_id,
