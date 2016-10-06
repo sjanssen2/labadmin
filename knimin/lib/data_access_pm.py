@@ -3,7 +3,7 @@ from knimin.lib.exceptions import *
 from sql_connection import TRN
 
 
-def _add_object(tbl_name, name, notes=None):
+def _add_object(self, tbl_name, name, notes=None):
     """ Generalized function to add a new object in a table with three columns:
         (object_id, name, notes), e.g. processing_robot, tm300_8_tool, ...
 
@@ -71,10 +71,10 @@ def _add_object(tbl_name, name, notes=None):
                  VALUES (%s, %s)
                  RETURNING """+tbl_name+"""_id"""
         TRN.add(sql, [name, notes])
-        return int(TRN.execute_fetchindex()[0][0])
+        return TRN.execute_fetchindex()[0][0]
 
 
-def _check_user(email):
+def _check_user(self, email):
     """ Checks that email is an existing user in the system.
 
     Parameters
@@ -100,7 +100,7 @@ def _check_user(email):
             return True
 
 
-def _get_objects(tbl_name):
+def _get_objects(self, tbl_name):
     """ Generalized function to return the content of a table with three
         columns: (object_id, name, notes), e.g. processing_robot, tm300_8_tool,
 
@@ -148,7 +148,7 @@ def _get_objects(tbl_name):
         return [dict(x) for x in TRN.execute_fetchindex()]
 
 
-def add_master_mix_lot(name, notes=None):
+def add_master_mix_lot(self, name, notes=None):
     """ Adds a new master mix lot.
 
     Parameters
@@ -170,20 +170,20 @@ def add_master_mix_lot(name, notes=None):
     LabadminDBDuplicateError
         If a master mix lot of the same name already exists.
     """
-    return _add_object('master_mix_lot', name, notes)
+    return _add_object(self, 'master_mix_lot', name, notes)
 
 
-def get_master_mix_lots():
+def get_master_mix_lots(self):
     """ Lists all existing master mix lots.
 
     Returns
     -------
     List of dicts per row: [{master_mix_lot_id:int, name:str, notes:str}]
     """
-    return _get_objects('master_mix_lot')
+    return _get_objects(self, 'master_mix_lot')
 
 
-def add_processing_robot(name, notes=None):
+def add_processing_robot(self, name, notes=None):
     """ Adds a new processing robot.
 
     Parameters
@@ -205,20 +205,20 @@ def add_processing_robot(name, notes=None):
     LabadminDBDuplicateError
         If a processing robot of the same name already exists.
     """
-    return _add_object('processing_robot', name, notes)
+    return _add_object(self, 'processing_robot', name, notes)
 
 
-def get_processing_robots():
+def get_processing_robots(self):
     """ Lists all existing processing robots.
 
     Returns
     -------
     List of dicts per row: [{processing_robot_id:int, name:str, notes:str}]
     """
-    return _get_objects('processing_robot')
+    return _get_objects(self, 'processing_robot')
 
 
-def add_tm300_8_tool(name, notes=None):
+def add_tm300_8_tool(self, name, notes=None):
     """ Adds a new TM 300-8 tool.
 
     Parameters
@@ -240,20 +240,20 @@ def add_tm300_8_tool(name, notes=None):
     LabadminDBDuplicateError
         If a TM 300-8 tool of the same name already exists.
     """
-    return _add_object('tm300_8_tool', name, notes)
+    return _add_object(self, 'tm300_8_tool', name, notes)
 
 
-def get_tm300_8_tools():
+def get_tm300_8_tools(self):
     """ Lists all existing TM 300-8 tools.
 
     Returns
     -------
     List of dicts per row: [{tm300_8_tool_id:int, name:str, notes:str}]
     """
-    return _get_objects('tm300_8_tool')
+    return _get_objects(self, 'tm300_8_tool')
 
 
-def add_tm50_8_tool(name, notes=None):
+def add_tm50_8_tool(self, name, notes=None):
     """ Adds a new TM 50-8 tool.
 
     Parameters
@@ -275,20 +275,20 @@ def add_tm50_8_tool(name, notes=None):
     LabadminDBDuplicateError
         If a TM 50-8 tool of the same name already exists.
     """
-    return _add_object('tm50_8_tool', name, notes)
+    return _add_object(self, 'tm50_8_tool', name, notes)
 
 
-def get_tm50_8_tools():
+def get_tm50_8_tools(self):
     """ Lists all existing TM 50-8 tools.
 
     Returns
     -------
     List of dicts per row: [{tm50_8_tool_id:int, name:str, notes:str}]
     """
-    return _get_objects('tm50_8_tool')
+    return _get_objects(self, 'tm50_8_tool')
 
 
-def add_water_lot(name, notes=None):
+def add_water_lot(self, name, notes=None):
     """ Adds a new water lot.
 
     Parameters
@@ -310,20 +310,20 @@ def add_water_lot(name, notes=None):
     LabadminDBDuplicateError
         If a water lot of the same name already exists.
     """
-    return _add_object('water_lot', name, notes)
+    return _add_object(self, 'water_lot', name, notes)
 
 
-def get_water_lots():
+def get_water_lots(self):
     """ Lists all existing water lots.
 
     Returns
     -------
     List of dicts per row: [{water_lot_id:int, name:str, notes:str}]
     """
-    return _get_objects('water_lot')
+    return _get_objects(self, 'water_lot')
 
 
-def extract_dna_from_sample_plate(name, email, sample_plate_id,
+def extract_dna_from_sample_plate(self, name, email, sample_plate_id,
                                   extraction_robot_id, extraction_tool_id,
                                   extraction_kit_lot_id, notes=None,
                                   created_on=None):
@@ -426,10 +426,10 @@ def extract_dna_from_sample_plate(name, email, sample_plate_id,
         TRN.add(sql, [name, email, created_on, sample_plate_id,
                       extraction_robot_id, extraction_kit_lot_id,
                       extraction_tool_id, notes])
-        return int(TRN.execute_fetchindex()[0][0])
+        return TRN.execute_fetchindex()[0][0]
 
 
-def remove_dna_plate(dna_plate_id):
+def remove_dna_plate(self, dna_plate_id):
     """ Removes a DNA plate, if no library plate uses it.
 
     Parameters
@@ -468,7 +468,7 @@ def remove_dna_plate(dna_plate_id):
         TRN.execute()
 
 
-def get_dna_plate(dna_plate_id):
+def get_dna_plate(self, dna_plate_id):
     """ Retrieves data of a DNA plate.
 
     Parameters
@@ -509,7 +509,7 @@ def get_dna_plate(dna_plate_id):
         return [dict(x) for x in TRN.execute_fetchindex()][0]
 
 
-def update_dna_plate(dna_plate_id, name, email, sample_plate_id,
+def update_dna_plate(self, dna_plate_id, name, email, sample_plate_id,
                      extraction_robot_id, extraction_kit_lot_id,
                      extraction_tool_id, notes, created_on):
     """ Updates information of a DNA plate.
@@ -525,7 +525,7 @@ def update_dna_plate(dna_plate_id, name, email, sample_plate_id,
     """
 
     # ensures that a user with email exists
-    _check_user(email)
+    _check_user(self, email)
 
     with TRN:
         # check that DNA plate exists
