@@ -255,15 +255,11 @@ class TestDataAccessPM(TestCase):
                                 99999)
 
         # add a DNA plate
-        db.extract_dna_from_sample_plate('ut_dnaR', 'test', 1, 1, 1, 1,
-                                         'my first dna plate', 'Jan-08-1999')
-        # obtain the new DNA plate's ID
+        dna_plate_id = db.extract_dna_from_sample_plate('ut_dnaR', 'test', 1,
+                                                        1, 1, 1,
+                                                        'my first dna plate',
+                                                        'Jan-08-1999')
         with TRN:
-            sql = """SELECT dna_plate_id FROM pm.dna_plate
-                     WHERE name = %s"""
-            TRN.add(sql, ['ut_dnaR'])
-            dna_plate_id = int(TRN.execute_fetchindex()[0][0])
-
             # make sure a protocol exists
             sql = """INSERT INTO pm.protocol (name) VALUES (%s)
                      RETURNING protocol_id"""

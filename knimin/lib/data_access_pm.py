@@ -16,6 +16,11 @@ def _add_object(tbl_name, name, notes=None):
     notes: str
         Some notes about new new processing-robot.
 
+    Returns
+    -------
+    int
+        ID of the newly created database entry.
+
     Raises
     ------
     LabadminDBError
@@ -64,9 +69,9 @@ def _add_object(tbl_name, name, notes=None):
         # add the new object into the DB
         sql = """INSERT INTO pm."""+tbl_name+""" (name, notes)
                  VALUES (%s, %s)
-                 RETURNING %s_id"""
-        TRN.add(sql, [name, notes, tbl_name])
-        TRN.execute()
+                 RETURNING """+tbl_name+"""_id"""
+        TRN.add(sql, [name, notes])
+        return TRN.execute_fetchindex()[0][0]
 
 
 def add_master_mix_lot(name, notes=None):
@@ -79,6 +84,11 @@ def add_master_mix_lot(name, notes=None):
     notes: str
         Some notes about new master mix lot.
 
+    Returns
+    -------
+    int
+        ID of the newly created master mix lot.
+
     Raises
     ------
     ValueError
@@ -86,18 +96,23 @@ def add_master_mix_lot(name, notes=None):
     LabadminDBDuplicateError
         If a master mix lot of the same name already exists.
     """
-    _add_object('master_mix_lot', name, notes)
+    return _add_object('master_mix_lot', name, notes)
 
 
 def add_processing_robot(name, notes=None):
-    """ Adds a new processing-robot.
+    """ Adds a new processing robot.
 
     Parameters
     ----------
     name: str
-        Name of the new processing-robot.
+        Name of the new processing robot.
     notes: str
-        Some notes about new processing-robot.
+        Some notes about new processing robot.
+
+    Returns
+    -------
+    int
+        ID of the newly created processing robot.
 
     Raises
     ------
@@ -106,7 +121,7 @@ def add_processing_robot(name, notes=None):
     LabadminDBDuplicateError
         If a processing robot of the same name already exists.
     """
-    _add_object('processing_robot', name, notes)
+    return _add_object('processing_robot', name, notes)
 
 
 def add_tm300_8_tool(name, notes=None):
@@ -119,6 +134,11 @@ def add_tm300_8_tool(name, notes=None):
     notes: str
         Some notes about new TM 300-8 tool.
 
+    Returns
+    -------
+    int
+        ID of the newly created TM 300-8 tool.
+
     Raises
     ------
     ValueError
@@ -126,7 +146,7 @@ def add_tm300_8_tool(name, notes=None):
     LabadminDBDuplicateError
         If a TM 300-8 tool of the same name already exists.
     """
-    _add_object('tm300_8_tool', name, notes)
+    return _add_object('tm300_8_tool', name, notes)
 
 
 def add_tm50_8_tool(name, notes=None):
@@ -139,6 +159,11 @@ def add_tm50_8_tool(name, notes=None):
     notes: str
         Some notes about new TM 50-8 tool.
 
+    Returns
+    -------
+    int
+        ID of the newly created TM 50-8 tool.
+
     Raises
     ------
     ValueError
@@ -146,7 +171,7 @@ def add_tm50_8_tool(name, notes=None):
     LabadminDBDuplicateError
         If a TM 50-8 tool of the same name already exists.
     """
-    _add_object('tm50_8_tool', name, notes)
+    return _add_object('tm50_8_tool', name, notes)
 
 
 def add_water_lot(name, notes=None):
@@ -159,6 +184,11 @@ def add_water_lot(name, notes=None):
     notes: str
         Some notes about new water lot.
 
+    Returns
+    -------
+    int
+        ID of the newly created water lot.
+
     Raises
     ------
     ValueError
@@ -166,7 +196,7 @@ def add_water_lot(name, notes=None):
     LabadminDBDuplicateError
         If a water lot of the same name already exists.
     """
-    _add_object('water_lot', name, notes)
+    return _add_object('water_lot', name, notes)
 
 
 def extract_dna_from_sample_plate(name, email, sample_plate_id,
@@ -193,6 +223,11 @@ def extract_dna_from_sample_plate(name, email, sample_plate_id,
         Arbitrary notes. Optional.
     created_on: str
         A time stamp for the creation of the DNA plate.
+
+    Returns
+    -------
+    int
+        ID of the newly created DNA plate.
 
     Raises
     ------
@@ -267,7 +302,7 @@ def extract_dna_from_sample_plate(name, email, sample_plate_id,
         TRN.add(sql, [name, email, created_on, sample_plate_id,
                       extraction_robot_id, extraction_kit_lot_id,
                       extraction_tool_id, notes])
-        TRN.execute()
+        return TRN.execute_fetchindex()[0][0]
 
 
 def remove_dna_plate(dna_plate_id):
