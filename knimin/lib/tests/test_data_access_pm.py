@@ -68,6 +68,13 @@ class TestDataAccessPM(TestCase):
             TRN.add(sql, ['ut_dnaR'])
             TRN.execute()
 
+        # test_update_dna_plate
+        with TRN:
+            sql = """DELETE FROM pm.dna_plate WHERE name = %s"""
+            TRN.add(sql, ['ut_dnaR'])
+            TRN.add(sql, ['ut_dnaS'])
+            TRN.execute()
+
     def setUp(self):
         db.add_processing_robot = add_processing_robot
         db.add_tm300_8_tool = add_tm300_8_tool
@@ -77,6 +84,7 @@ class TestDataAccessPM(TestCase):
         db.extract_dna_from_sample_plate = extract_dna_from_sample_plate
         db.remove_dna_plate = remove_dna_plate
         db.get_dna_plate = get_dna_plate
+        db.update_dna_plate = update_dna_plate
 
     def test__add_object(self):
         # test check for table existence
@@ -304,5 +312,37 @@ class TestDataAccessPM(TestCase):
                           datetime(1999, 1, 8,), 1, 1, 1, 1,
                           'my first dna plate'))
 
+    def test_update_dna_plate(self):
+        # add tow DNA plates
+        dna_plate_id1 = db.extract_dna_from_sample_plate('ut_dnaR', 'test', 1,
+                                                         1, 1, 1,
+                                                         'my first dna plate',
+                                                         'Jan-08-1999')
+        dna_plate_id2 = db.extract_dna_from_sample_plate('ut_dnaS', 'test', 1,
+                                                         1, 1, 1,
+                                                         'my second dna plate',
+                                                         'Jan-08-1999')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.update_dna_plate,
+                                99999, 'ut_dnaR', 'test', 1, 1, 1, 1,
+                                'my first dna plate', 'Jan-08-1999')
+
+        self.assertRaisesRegexp(ValueError,
+                                "name cannot be empty",
+                                db.update_dna_plate,
+                                dna_plate_id1, '', 'test', 1, 1, 1, 1,
+                                'my first dna plate', 'Jan-08-1999')
+
+        self.assertRaisesRegexp(LabadminDBDuplicateError,
+                                "already exists.",
+                                db.update_dna_plate,
+                                dna_plate_id1, 'ut_dnaS', 'test', 1, 1, 1, 1,
+                                'my first dna plate', 'Jan-08-1999')
+
+        # db.update_dna_plate(
+        #     dna_plate_id1, 'ut_dnaS', 'test', 1, 1, 1, 1,
+        #     'my first dna plate', 'Jan-08-1999')
 if __name__ == "__main__":
     main()

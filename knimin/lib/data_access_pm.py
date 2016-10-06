@@ -380,7 +380,7 @@ def get_dna_plate(dna_plate_id):
         if len(TRN.execute_fetchindex()) == 0:
             raise LabadminDBUnknownIDError(dna_plate_id, 'pm.dna_plate')
 
-        # retriev entry and return it
+        # retrieve entry and return it
         sql = """SELECT * FROM pm.dna_plate WHERE dna_plate_id = %s"""
         TRN.add(sql, [dna_plate_id])
         dna_plate_id, name, email, created_on, sample_plate_id,\
@@ -389,3 +389,39 @@ def get_dna_plate(dna_plate_id):
         return (int(dna_plate_id), name, email, created_on,
                 int(sample_plate_id), int(extraction_robot_id),
                 int(extraction_kit_lot_id), int(extraction_tool_id), notes)
+
+
+def update_dna_plate(dna_plate_id, name, email, created_on, sample_plate_id,
+                     extraction_robot_id, extraction_kit_lot_id,
+                     extraction_tool_id, notes):
+    """ Updates information of a DNA plate.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If the given dna_plate_id does not exist.
+    ValueError
+        If the name of the DNA plate is missing or empty.
+    LabadminDBDuplicateError
+        If the name already exists in the data base for another DNA plate.
+    """
+    with TRN:
+        # check that DNA plate exists
+        sql = """SELECT dna_plate_id FROM pm.dna_plate
+                 WHERE dna_plate_id = %s"""
+        TRN.add(sql, [dna_plate_id])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(dna_plate_id, 'pm.dna_plate')
+
+        # ensure that the object name is not empty
+        if not name or len(name) <= 0:
+            raise ValueError('The DNA plate name cannot be empty.')
+
+        with TRN:
+            # check if an object with the same name already exists, when
+            # changing the name.
+            sql = """SELECT name FROM pm.dna_plate
+                     WHERE name = %s AND dna_plate_id != %s"""
+            TRN.add(sql, [name, dna_plate_id])
+            if len(TRN.execute_fetchindex()) > 0:
+                raise LabadminDBDuplicateError('dna_plate', 'name: %s' % name)
