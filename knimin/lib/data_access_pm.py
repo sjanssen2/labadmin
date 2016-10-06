@@ -74,6 +74,32 @@ def _add_object(tbl_name, name, notes=None):
         return int(TRN.execute_fetchindex()[0][0])
 
 
+def _check_user(email):
+    """ Checks that email is an existing user in the system.
+
+    Parameters
+    ----------
+    email: str
+        The email address that specifies a system user.
+
+    Returns
+    -------
+    True, iff user with email exists in the system.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If no user with the given email exists.
+    """
+    with TRN:
+        sql = """SELECT email FROM ag.labadmin_users WHERE email = %s"""
+        TRN.add(sql, [email])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(email, 'ag.labadmin_users')
+        else:
+            return True
+
+
 def add_master_mix_lot(name, notes=None):
     """ Adds a new master mix lot.
 

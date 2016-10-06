@@ -3,7 +3,7 @@ from datetime import datetime
 
 from knimin import db
 from knimin.lib.data_access_pm import *
-from knimin.lib.data_access_pm import _add_object
+from knimin.lib.data_access_pm import _add_object, _check_user
 from knimin.lib.sql_connection import TRN
 from knimin.lib.exceptions import *
 
@@ -111,6 +111,13 @@ class TestDataAccessPM(TestCase):
                                 'processing_robot',
                                 'ut_robi2',
                                 'some notes')
+
+    def test__check_user(self):
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%s' does not" % 'ut_dna1',
+                                _check_user,
+                                'ut_dna1')
+        self.assertTrue(_check_user('test'))
 
     def test_add_processing_robot(self):
         self.assertRaisesRegexp(ValueError,
