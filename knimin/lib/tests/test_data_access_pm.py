@@ -73,6 +73,7 @@ class TestDataAccessPM(TestCase):
             sql = """DELETE FROM pm.dna_plate WHERE name = %s"""
             TRN.add(sql, ['ut_dnaR'])
             TRN.add(sql, ['ut_dnaS'])
+            TRN.add(sql, ['ut_dnaX'])
             TRN.execute()
 
     def setUp(self):
@@ -348,8 +349,43 @@ class TestDataAccessPM(TestCase):
                                 dna_plate_id1, 'ut_dnaS', 'test', 1, 1, 1, 1,
                                 'my first dna plate', 'Jan-08-1999')
 
-        # db.update_dna_plate(
-        #     dna_plate_id1, 'ut_dnaS', 'test', 1, 1, 1, 1,
-        #     'my first dna plate', 'Jan-08-1999')
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%s' does not" % 'noUser',
+                                db.update_dna_plate,
+                                dna_plate_id1, 'ut_dnaS', 'noUser', 1, 1, 1, 1,
+                                'my first dna plate', 'Jan-08-1999')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%s' does not" % "99999",
+                                db.update_dna_plate,
+                                dna_plate_id1, 'ut_dnaX', 'test', 99999, 1, 1,
+                                1, 'my first dna plate', 'Jan-08-1999')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%s' does not" % "99999",
+                                db.update_dna_plate,
+                                dna_plate_id1, 'ut_dnaX', 'test', 1, 99999, 1,
+                                1, 'my first dna plate', 'Jan-08-1999')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%s' does not" % "99999",
+                                db.update_dna_plate,
+                                dna_plate_id1, 'ut_dnaX', 'test', 1, 1, 99999,
+                                1, 'my first dna plate', 'Jan-08-1999')
+
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%s' does not" % "99999",
+                                db.update_dna_plate,
+                                dna_plate_id1, 'ut_dnaX', 'test', 1, 1, 1,
+                                99999, 'my first dna plate', 'Jan-08-1999')
+
+        db.update_dna_plate(dna_plate_id1, 'ut_dnaX', 'test', 1, 1, 1, 1,
+                            'my third dna plate', 'Feb-08-1999')
+        self.assertEqual(db.get_dna_plate(dna_plate_id1),
+                         (dna_plate_id1, 'ut_dnaX', 'test',
+                          datetime(1999, 2, 8,), 1, 1, 1, 1,
+                          'my third dna plate'))
+
+
 if __name__ == "__main__":
     main()

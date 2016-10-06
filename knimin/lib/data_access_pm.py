@@ -417,9 +417,9 @@ def get_dna_plate(dna_plate_id):
                 int(extraction_kit_lot_id), int(extraction_tool_id), notes)
 
 
-def update_dna_plate(dna_plate_id, name, email, created_on, sample_plate_id,
+def update_dna_plate(dna_plate_id, name, email, sample_plate_id,
                      extraction_robot_id, extraction_kit_lot_id,
-                     extraction_tool_id, notes):
+                     extraction_tool_id, notes, created_on):
     """ Updates information of a DNA plate.
 
     Raises
@@ -431,6 +431,10 @@ def update_dna_plate(dna_plate_id, name, email, created_on, sample_plate_id,
     LabadminDBDuplicateError
         If the name already exists in the data base for another DNA plate.
     """
+
+    # ensures that a user with email exists
+    _check_user(email)
+
     with TRN:
         # check that DNA plate exists
         sql = """SELECT dna_plate_id FROM pm.dna_plate
@@ -451,3 +455,47 @@ def update_dna_plate(dna_plate_id, name, email, created_on, sample_plate_id,
             TRN.add(sql, [name, dna_plate_id])
             if len(TRN.execute_fetchindex()) > 0:
                 raise LabadminDBDuplicateError('dna_plate', 'name: %s' % name)
+
+            # check that a sample plate with the given ID exists
+            sql = """SELECT sample_plate_id FROM pm.sample_plate
+                     WHERE sample_plate_id = %s"""
+            TRN.add(sql, [sample_plate_id])
+            if len(TRN.execute_fetchindex()) == 0:
+                raise LabadminDBUnknownIDError(sample_plate_id,
+                                               'pm.sample_plate')
+
+            # check that an extraction robot with the given ID exists
+            sql = """SELECT extraction_robot_id FROM pm.extraction_robot
+                     WHERE extraction_robot_id = %s"""
+            TRN.add(sql, [extraction_robot_id])
+            if len(TRN.execute_fetchindex()) == 0:
+                raise LabadminDBUnknownIDError(extraction_robot_id,
+                                               'pm.extraction_robot')
+
+            # check that an extraction kit lot with the given ID exists
+            sql = """SELECT extraction_kit_lot_id FROM pm.extraction_kit_lot
+                     WHERE extraction_kit_lot_id = %s"""
+            TRN.add(sql, [extraction_kit_lot_id])
+            if len(TRN.execute_fetchindex()) == 0:
+                raise LabadminDBUnknownIDError(extraction_kit_lot_id,
+                                               'pm.extraction_kit_lot')
+
+            # check that an extraction tool with the given ID exists
+            sql = """SELECT extraction_tool_id FROM pm.extraction_tool
+                     WHERE extraction_tool_id = %s"""
+            TRN.add(sql, [extraction_tool_id])
+            if len(TRN.execute_fetchindex()) == 0:
+                raise LabadminDBUnknownIDError(extraction_tool_id,
+                                               'pm.extraction_tool')
+
+            # actually updating the DB
+            sql = """UPDATE pm.dna_plate
+                     SET name = %s, email = %s, created_on = %s,
+                         sample_plate_id = %s, extraction_robot_id = %s,
+                         extraction_kit_lot_id = %s, extraction_tool_id = %s,
+                         notes = %s
+                     WHERE dna_plate_id = %s"""
+            TRN.add(sql, [name, email, created_on, sample_plate_id,
+                          extraction_robot_id, extraction_kit_lot_id,
+                          extraction_tool_id, notes, dna_plate_id])
+            TRN.execute()
