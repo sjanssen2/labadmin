@@ -100,6 +100,54 @@ def _check_user(email):
             return True
 
 
+def _get_objects(tbl_name):
+    """ Generalized function to return the content of a table with three
+        columns: (object_id, name, notes), e.g. processing_robot, tm300_8_tool,
+
+    Parameters
+    ----------
+    tbl_name: str
+        The DB table name into which the new object should be added.
+    name: str
+        Name of the new processing-robot.
+
+    Returns
+    -------
+    [[object_id, name:str, notes:str]]
+
+    Raises
+    ------
+    LabadminDBError
+        a) If the tbl_name does not exist in the DB.
+        b) If the table in which the object should be added does not follow the
+           expected design, which is that the table must have exactly the three
+           columns: [tbl_name_id, name, notes]
+    """
+    with TRN:
+        # check that tbl_name exists in DB
+        sql = """SELECT DISTINCT table_name FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE table_schema = 'pm' AND table_name = %s"""
+        TRN.add(sql, [tbl_name])
+        if len(TRN.execute_fetchindex()) != 1:
+            raise LabadminDBError('Table %s does not exist in data base.' %
+                                  tbl_name)
+
+        # check that table has exactly three columns
+        sql = """SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE table_schema = 'pm' AND table_name = %s"""
+        TRN.add(sql, [tbl_name])
+        column_names = [c[0] for c in TRN.execute_fetchindex()]
+        if [tbl_name+'_id', 'name', 'notes'] != column_names:
+            raise LabadminDBError(('Table %s does not have the expected column'
+                                   ' design. It must have exactly the three '
+                                   'columns: "%s_id", "name", "notes"') %
+                                  (tbl_name, tbl_name))
+
+        sql = """SELECT * FROM pm.""" + tbl_name
+        TRN.add(sql, [])
+        return TRN.execute_fetchindex()
+
+
 def add_master_mix_lot(name, notes=None):
     """ Adds a new master mix lot.
 
@@ -123,6 +171,16 @@ def add_master_mix_lot(name, notes=None):
         If a master mix lot of the same name already exists.
     """
     return _add_object('master_mix_lot', name, notes)
+
+
+def get_master_mix_lots():
+    """ Lists all existing master mix lots.
+
+    Returns
+    -------
+    [[master_mix_lot_id, name:str, notes:str]]
+    """
+    return _get_objects('master_mix_lot')
 
 
 def add_processing_robot(name, notes=None):
@@ -150,6 +208,16 @@ def add_processing_robot(name, notes=None):
     return _add_object('processing_robot', name, notes)
 
 
+def get_processing_robots():
+    """ Lists all existing processing robots.
+
+    Returns
+    -------
+    [[processing_robot_id, name:str, notes:str]]
+    """
+    return _get_objects('processing_robot')
+
+
 def add_tm300_8_tool(name, notes=None):
     """ Adds a new TM 300-8 tool.
 
@@ -173,6 +241,16 @@ def add_tm300_8_tool(name, notes=None):
         If a TM 300-8 tool of the same name already exists.
     """
     return _add_object('tm300_8_tool', name, notes)
+
+
+def get_tm300_8_tools():
+    """ Lists all existing TM 300-8 tools.
+
+    Returns
+    -------
+    [[tm300_8_tool_id, name:str, notes:str]]
+    """
+    return _get_objects('tm300_8_tool')
 
 
 def add_tm50_8_tool(name, notes=None):
@@ -200,6 +278,16 @@ def add_tm50_8_tool(name, notes=None):
     return _add_object('tm50_8_tool', name, notes)
 
 
+def get_tm50_8_tools():
+    """ Lists all existing TM 50-8 tools.
+
+    Returns
+    -------
+    [[tm50_8_tool_id, name:str, notes:str]]
+    """
+    return _get_objects('tm50_8_tool')
+
+
 def add_water_lot(name, notes=None):
     """ Adds a new water lot.
 
@@ -223,6 +311,16 @@ def add_water_lot(name, notes=None):
         If a water lot of the same name already exists.
     """
     return _add_object('water_lot', name, notes)
+
+
+def get_water_lots():
+    """ Lists all existing water lots.
+
+    Returns
+    -------
+    [[water_lot_id, name:str, notes:str]]
+    """
+    return _get_objects('water_lot')
 
 
 def extract_dna_from_sample_plate(name, email, sample_plate_id,

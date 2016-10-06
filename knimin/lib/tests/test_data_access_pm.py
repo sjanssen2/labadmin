@@ -3,7 +3,7 @@ from datetime import datetime
 
 from knimin import db
 from knimin.lib.data_access_pm import *
-from knimin.lib.data_access_pm import _add_object, _check_user
+from knimin.lib.data_access_pm import _add_object, _check_user, _get_objects
 from knimin.lib.sql_connection import TRN
 from knimin.lib.exceptions import *
 
@@ -12,9 +12,9 @@ class TestDataAccessPM(TestCase):
     def tearDown(self):
         # _add_object
         with TRN:
-            sql = """DELETE FROM pm.processing_robot
+            sql = """DELETE FROM pm.master_mix_lot
                      WHERE name = %s"""
-            TRN.add(sql, ['ut_robi2'])
+            TRN.add(sql, ['ut_mml1'])
             TRN.execute()
 
         # add_processing_robot
@@ -22,6 +22,7 @@ class TestDataAccessPM(TestCase):
             sql = """DELETE FROM pm.processing_robot
                      WHERE name = %s"""
             TRN.add(sql, ['ut_robi1'])
+            TRN.add(sql, ['ut_robi2'])
             TRN.execute()
 
         # test_add_tm300_8_tool
@@ -78,10 +79,15 @@ class TestDataAccessPM(TestCase):
 
     def setUp(self):
         db.add_processing_robot = add_processing_robot
+        db.get_processing_robots = get_processing_robots
         db.add_tm300_8_tool = add_tm300_8_tool
+        db.get_tm300_8_tools = get_tm300_8_tools
         db.add_tm50_8_tool = add_tm50_8_tool
+        db.get_tm50_8_tools = get_tm50_8_tools
         db.add_water_lot = add_water_lot
+        db.get_water_lots = get_water_lots
         db.add_master_mix_lot = add_master_mix_lot
+        db.get_master_mix_lots = get_master_mix_lots
         db.extract_dna_from_sample_plate = extract_dna_from_sample_plate
         db.remove_dna_plate = remove_dna_plate
         db.get_dna_plate = get_dna_plate
@@ -120,7 +126,22 @@ class TestDataAccessPM(TestCase):
                                 'ut_dna1')
         self.assertTrue(_check_user('test'))
 
-    def test_add_processing_robot(self):
+    def test__get_objects(self):
+        # test check for table existence
+        self.assertRaisesRegexp(LabadminDBError,
+                                'does not exist in data base.',
+                                _get_objects,
+                                'p1rocessing_robot')
+
+        # test check for table design
+        self.assertRaisesRegexp(LabadminDBError,
+                                'does not have the expected column',
+                                _get_objects,
+                                'dna_plate')
+        # regular get
+        self.assertIn([1L, 'HOWE_KF1', None], _get_objects('extraction_robot'))
+
+    def test_add_master_mix_lot(self):
         self.assertRaisesRegexp(ValueError,
                                 'The master_mix_lot name cannot be empty.',
                                 db.add_master_mix_lot,
@@ -132,7 +153,7 @@ class TestDataAccessPM(TestCase):
                                 '',
                                 'some notes')
         # add a master mix lot
-        name = 'ut_robi1'
+        name = 'ut_mml1'
         db.add_master_mix_lot(name, 'some notes')
         # indirect test if the upper statement could add the robot, since it
         # cannot be added twice with the same name.
@@ -141,6 +162,9 @@ class TestDataAccessPM(TestCase):
                                 db.add_master_mix_lot,
                                 name,
                                 'some notes')
+
+    def test_get_master_mix_lots(self):
+        self.assertEqual([[1L, '14459', None]], db.get_master_mix_lots())
 
     def test_add_processing_robot(self):
         self.assertRaisesRegexp(ValueError,
@@ -164,6 +188,12 @@ class TestDataAccessPM(TestCase):
                                 name,
                                 'some notes')
 
+    def test_get_processing_robots(self):
+        self.assertEqual([[1L, 'ROBE', None],
+                          [2L, 'RIKE', None],
+                          [3L, 'JERE', None],
+                          [4L, 'CARMEN', None]], db.get_processing_robots())
+
     def test_add_tm300_8_tool(self):
         self.assertRaisesRegexp(ValueError,
                                 'The tm300_8_tool name cannot be empty.',
@@ -185,6 +215,12 @@ class TestDataAccessPM(TestCase):
                                 db.add_tm300_8_tool,
                                 name,
                                 'some notes')
+
+    def test_get_tm300_8_tools(self):
+        self.assertEqual([[1L, '208484Z', None],
+                          [2L, '311318B', None],
+                          [3L, '109375A', None],
+                          [4L, '3076189', None]], db.get_tm300_8_tools())
 
     def test_add_tm50_8_tool(self):
         self.assertRaisesRegexp(ValueError,
@@ -208,6 +244,12 @@ class TestDataAccessPM(TestCase):
                                 name,
                                 'some notes')
 
+    def test_get_tm50_8_tools(self):
+        self.assertEqual([[1L, '108364Z', None],
+                          [2L, '311426B', None],
+                          [3L, '311441B', None],
+                          [4L, '409172Z', None]], db.get_tm50_8_tools())
+
     def test_add_water_lot(self):
         self.assertRaisesRegexp(ValueError,
                                 'The water_lot name cannot be empty.',
@@ -229,6 +271,9 @@ class TestDataAccessPM(TestCase):
                                 db.add_water_lot,
                                 name,
                                 'some notes')
+
+    def test_get_water_lots(self):
+        self.assertEqual([[1L, 'RNBD9959', None]], db.get_water_lots())
 
     def test_extract_dna_from_sample_plate(self):
         self.assertRaisesRegexp(ValueError,
