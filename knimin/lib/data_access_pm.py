@@ -73,6 +73,62 @@ def _check_table_layout(tbl_name):
         return True
 
 
+def _exists(tbl_name, field, value):
+    """ Tests if a value for the given field already exists in the given table.
+
+    Parameters
+    ----------
+    tbl_name: str
+        The DB table name.
+    field: str
+        Name of the table column.
+    value: str
+        Value of the column 'field' in the table 'tbl_name'.
+
+    Returns
+    -------
+    Bool
+        True, iff the table 'tbl_name' exists, has a column 'field' and has no
+        entry with 'value' in column 'field'.
+        False, otherwise.
+
+    Raises
+    ------
+    LabadminDBError
+        a) If the tbl_name does not exist in the DB.
+        b) If the table does not follow the expected design, which is that the
+           table must have exactly the three columns:
+           [tbl_name_id, name, notes]
+    """
+    with TRN:
+        # check that tbl_name exists in DB
+        sql = """SELECT DISTINCT table_name from INFORMATION_SCHEMA.COLUMNS
+                 WHERE table_schema = 'pm' AND table_name = %s"""
+        TRN.add(sql, [tbl_name])
+        if len(TRN.execute_fetchindex()) != 1:
+            raise LabadminDBError('Table %s does not exist in data base.' %
+                                  tbl_name)
+
+        # check that table has the column field
+        sql = """SELECT column_name from INFORMATION_SCHEMA.COLUMNS
+                 WHERE table_schema = 'pm' AND table_name = %s"""
+        TRN.add(sql, [tbl_name])
+        if field not in [c[0] for c in TRN.execute_fetchindex()]:
+            raise LabadminDBError(('Table %s does not have the given column: '
+                                   '%s.') % (tbl_name, field))
+
+        # check if an object with the same value already exists
+        sql = """SELECT """+field+""" FROM pm."""+tbl_name+"""
+                 WHERE """+field+""" = %s"""
+        TRN.add(sql, [value])
+        if len(TRN.execute_fetchindex()) > 0:
+            return True
+            # raise LabadminDBDuplicateError(tbl_name,
+            #                                '%s: %s' % (field, value))
+
+    return False
+
+
 def _add_object(tbl_name, name, notes=None):
     """ Generalized function to add a new object in a table with three columns:
         (object_id, name, notes), e.g. processing_robot, tm300_8_tool, ...
@@ -103,19 +159,16 @@ def _add_object(tbl_name, name, notes=None):
     LabadminDBDuplicateError
         If an object of the same name already exists.
     """
-    _check_table_layout(tbl_name)
-
     # ensure that the object name is not empty
     if not name or len(name) <= 0:
         raise ValueError('The %s name cannot be empty.' % tbl_name)
 
     with TRN:
+        _check_table_layout(tbl_name)
+
         # check if an object with the same name already exists
-        sql = """SELECT name FROM pm."""+tbl_name+""" WHERE name = %s"""
-        TRN.add(sql, [name])
-        if len(TRN.execute_fetchindex()) > 0:
-            raise LabadminDBDuplicateError(tbl_name,
-                                           'name: %s' % name)
+        if _exists(tbl_name, 'name', name):
+            raise LabadminDBDuplicateError(tbl_name, '%s: %s' % ('name', name))
 
         # add the new object into the DB
         sql = """INSERT INTO pm."""+tbl_name+""" (name, notes)
@@ -148,8 +201,9 @@ def _get_objects(tbl_name):
            expected design, which is that the table must have exactly the three
            columns: [tbl_name_id, name, notes]
     """
-    _check_table_layout(tbl_name)
     with TRN:
+        _check_table_layout(tbl_name)
+
         sql = """SELECT * FROM pm.""" + tbl_name
         TRN.add(sql, [])
         return [dict(x) for x in TRN.execute_fetchindex()]
@@ -376,46 +430,32 @@ def extract_dna_from_sample_plate(name, email, sample_plate_id,
 
     with TRN:
         # check if an object with the same name already exists
-        sql = """SELECT name FROM pm.dna_plate WHERE name = %s"""
-        TRN.add(sql, [name])
-        if len(TRN.execute_fetchindex()) > 0:
-            raise LabadminDBDuplicateError('pm.dna_plate',
-                                           'name: %s' % name)
+        if _exists('dna_plate', 'name', name):
+            raise LabadminDBDuplicateError('dna_plate',
+                                           '%s: %s' % ('name', name))
 
         # check that email is an existing user in the system
-        sql = """SELECT email FROM ag.labadmin_users WHERE email = %s"""
-        TRN.add(sql, [email])
-        if len(TRN.execute_fetchindex()) == 0:
-            raise LabadminDBUnknownIDError(email, 'ag.labadmin_users')
+        _check_user(email)
 
         # check that sample_plate with this ID already exists
-        sql = """SELECT sample_plate_id FROM pm.sample_plate
-                 WHERE sample_plate_id = %s"""
-        TRN.add(sql, [sample_plate_id])
-        if len(TRN.execute_fetchindex()) == 0:
+        if not _exists('sample_plate', 'sample_plate_id', sample_plate_id):
             raise LabadminDBUnknownIDError(sample_plate_id, 'pm.sample_plate')
 
         # check that extraction_robot with this ID already exists
-        sql = """SELECT extraction_robot_id FROM pm.extraction_robot
-                 WHERE extraction_robot_id = %s"""
-        TRN.add(sql, [extraction_robot_id])
-        if len(TRN.execute_fetchindex()) == 0:
+        if not _exists('extraction_robot', 'extraction_robot_id',
+                       extraction_robot_id):
             raise LabadminDBUnknownIDError(extraction_robot_id,
                                            'pm.extraction_robot')
 
         # check that extraction_tool with this ID already exists
-        sql = """SELECT extraction_tool_id FROM pm.extraction_tool
-                 WHERE extraction_tool_id = %s"""
-        TRN.add(sql, [extraction_tool_id])
-        if len(TRN.execute_fetchindex()) == 0:
+        if not _exists('extraction_tool', 'extraction_tool_id',
+                       extraction_tool_id):
             raise LabadminDBUnknownIDError(extraction_tool_id,
                                            'pm.extraction_tool')
 
         # check that extraction_kit with this ID already exists
-        sql = """SELECT extraction_kit_lot_id FROM pm.extraction_kit_lot
-                 WHERE extraction_kit_lot_id = %s"""
-        TRN.add(sql, [extraction_kit_lot_id])
-        if len(TRN.execute_fetchindex()) == 0:
+        if not _exists('extraction_kit_lot', 'extraction_kit_lot_id',
+                       extraction_kit_lot_id):
             raise LabadminDBUnknownIDError(extraction_kit_lot_id,
                                            'pm.extraction_kit_lot')
 
@@ -455,10 +495,7 @@ def remove_dna_plate(dna_plate_id):
 
     with TRN:
         # check that DNA plate exists
-        sql = """SELECT dna_plate_id FROM pm.dna_plate
-                 WHERE dna_plate_id = %s"""
-        TRN.add(sql, [dna_plate_id])
-        if len(TRN.execute_fetchindex()) == 0:
+        if not _exists('dna_plate', 'dna_plate_id', dna_plate_id):
             raise LabadminDBUnknownIDError(dna_plate_id, 'pm.dna_plate')
 
         # check that DNA plate is not used by any library plate
@@ -504,10 +541,7 @@ def get_dna_plate(dna_plate_id):
 
     with TRN:
         # check that DNA plate exists
-        sql = """SELECT dna_plate_id FROM pm.dna_plate
-                 WHERE dna_plate_id = %s"""
-        TRN.add(sql, [dna_plate_id])
-        if len(TRN.execute_fetchindex()) == 0:
+        if not _exists('dna_plate', 'dna_plate_id', dna_plate_id):
             raise LabadminDBUnknownIDError(dna_plate_id, 'pm.dna_plate')
 
         # retrieve entry and return it
@@ -536,10 +570,7 @@ def update_dna_plate(dna_plate_id, name, email, sample_plate_id,
 
     with TRN:
         # check that DNA plate exists
-        sql = """SELECT dna_plate_id FROM pm.dna_plate
-                 WHERE dna_plate_id = %s"""
-        TRN.add(sql, [dna_plate_id])
-        if len(TRN.execute_fetchindex()) == 0:
+        if not _exists('dna_plate', 'dna_plate_id', dna_plate_id):
             raise LabadminDBUnknownIDError(dna_plate_id, 'pm.dna_plate')
 
         # ensure that the object name is not empty
@@ -556,34 +587,26 @@ def update_dna_plate(dna_plate_id, name, email, sample_plate_id,
                 raise LabadminDBDuplicateError('dna_plate', 'name: %s' % name)
 
             # check that a sample plate with the given ID exists
-            sql = """SELECT sample_plate_id FROM pm.sample_plate
-                     WHERE sample_plate_id = %s"""
-            TRN.add(sql, [sample_plate_id])
-            if len(TRN.execute_fetchindex()) == 0:
+            if not _exists('sample_plate', 'sample_plate_id',
+                           sample_plate_id):
                 raise LabadminDBUnknownIDError(sample_plate_id,
                                                'pm.sample_plate')
 
             # check that an extraction robot with the given ID exists
-            sql = """SELECT extraction_robot_id FROM pm.extraction_robot
-                     WHERE extraction_robot_id = %s"""
-            TRN.add(sql, [extraction_robot_id])
-            if len(TRN.execute_fetchindex()) == 0:
+            if not _exists('extraction_robot', 'extraction_robot_id',
+                           extraction_robot_id):
                 raise LabadminDBUnknownIDError(extraction_robot_id,
                                                'pm.extraction_robot')
 
             # check that an extraction kit lot with the given ID exists
-            sql = """SELECT extraction_kit_lot_id FROM pm.extraction_kit_lot
-                     WHERE extraction_kit_lot_id = %s"""
-            TRN.add(sql, [extraction_kit_lot_id])
-            if len(TRN.execute_fetchindex()) == 0:
+            if not _exists('extraction_kit_lot', 'extraction_kit_lot_id',
+                           extraction_kit_lot_id):
                 raise LabadminDBUnknownIDError(extraction_kit_lot_id,
                                                'pm.extraction_kit_lot')
 
             # check that an extraction tool with the given ID exists
-            sql = """SELECT extraction_tool_id FROM pm.extraction_tool
-                     WHERE extraction_tool_id = %s"""
-            TRN.add(sql, [extraction_tool_id])
-            if len(TRN.execute_fetchindex()) == 0:
+            if not _exists('extraction_tool', 'extraction_tool_id',
+                           extraction_tool_id):
                 raise LabadminDBUnknownIDError(extraction_tool_id,
                                                'pm.extraction_tool')
 

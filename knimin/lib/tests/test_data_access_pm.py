@@ -3,7 +3,8 @@ from datetime import datetime
 
 from knimin import db
 from knimin.lib.data_access_pm import *
-from knimin.lib.data_access_pm import _add_object, _check_user, _get_objects
+from knimin.lib.data_access_pm import _add_object, _check_user, _get_objects, \
+                                      _exists
 from knimin.lib.sql_connection import TRN
 from knimin.lib.exceptions import *
 
@@ -84,6 +85,30 @@ class TestDataAccessPM(TestCase):
                                 'dna_plate',
                                 'ut_robi2',
                                 'some notes')
+
+    def test__exists(self):
+        # test check for table existence
+        self.assertRaisesRegexp(LabadminDBError,
+                                'does not exist in data base.',
+                                _exists,
+                                'p1rocessing_robot',
+                                'col_no',
+                                'newValue')
+
+        # test check that column exists
+        self.assertRaisesRegexp(LabadminDBError,
+                                'does not have the given column',
+                                _exists,
+                                'dna_plate',
+                                'col_no',
+                                'newValue')
+
+        # check that duplicates cannot be added
+        self.assertTrue(_exists('processing_robot', 'name', 'ROBE'))
+
+        # check if True is reported, if new row with name for column field
+        # can be added without collisions.
+        self.assertFalse(_exists('processing_robot', 'name', 'ut_newR'))
 
     def test__add_object(self):
         # test check for table existence
