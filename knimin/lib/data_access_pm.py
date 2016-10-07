@@ -831,3 +831,74 @@ def update_plate_type(plate_type_id, notes):
                  SET notes = %s WHERE plate_type_id = %s"""
         TRN.add(sql, [notes, plate_type_id])
         TRN.execute()
+
+
+def _check_grid_format(grid, keys=[], maxrows=None, maxcols=None):
+    # must be a list
+    if str(type(grid)) != "<type 'list'>":
+        raise LabadminGridFormatError('Gird must be a list of dictionaries.')
+    if len(grid) > 0:
+        if str(type(grid[0])) != "<type 'dict'>":
+            raise LabadminGridFormatError('Gird must be a list of dictionaries.')
+        for cell in grid:
+            for key in ['col', 'row'] + keys:
+                if key not in cell:
+                    raise LabadminGridFormatError('At least one of the cells in the grid mis a key "%s".' % key)
+        if maxrows is not None:
+            for cell in grid:
+                if cell['row'] < 1:
+                    raise LabadminGridFormatError('Row for cell (%i, %i) must be positive!' % (cell['row'], cell['col']))
+                if cell['row'] > maxrows:
+                    raise LabadminGridFormatError('Row for cell (%i, %i) is larger than maximal row number: %i!' % (cell['row'], cell['col'], maxrows))
+        if maxcols is not None:
+            for cell in grid:
+                if cell['col'] < 1:
+                    raise LabadminGridFormatError('Col for cell (%i, %i) must be positive!' % (cell['row'], cell['col']))
+                if cell['col'] > maxrows:
+                    raise LabadminGridFormatError('Col for cell (%i, %i) is larger than maximal col number: %i!' % (cell['row'], cell['col'], maxcols))
+        coordinates = [(cell['row'], cell['col']) for cell in grid]
+        if len(set(coordinates)) != coordinates:
+            raise LabadminGridFormatError('The grid contains duplicate cells.')
+    return True
+
+
+def add_barcode_sequence_plate(name, plate_type_id, grid, notes=None):
+    """ Adds a new barcode sequence plate.
+
+    Parameters
+    ----------
+    name: str
+        Name of the new barcode sequence plate.
+    plate_type_id: int
+        ID of the plate type for the new barcode sequence plate.
+    grid: ???
+
+    notes: str
+        Notes for the new barcode sequence plate.
+
+    Returns
+    -------
+    int
+        ID of the newly created barcode sequence plate.
+
+    Raises
+    ------
+    ValueError
+        If the plate type name is missing or empty.
+    LabadminDBUnknownIDError
+        If no plate type with the given ID exists.
+    """
+    # ensure that the object name is not empty
+    if not name or len(name) <= 0:
+        raise ValueError('The plate_type name cannot be empty.')
+
+    # check format of grid
+
+
+    with TRN:
+        if not _exists('barcode_sequence_plate', 'name', name):
+            raise LabadminDBUnknownIDError(name, 'pm.barcode_sequence_plate')
+
+        # check that plate_type with this ID already exists
+        if not _exists('plate_type', 'plate_type_id', plate_type_id):
+            raise LabadminDBUnknownIDError(plate_type_id, 'pm.plate_type')

@@ -12,6 +12,13 @@ class LabadminDBError(LabadminError):
     pass
 
 
+class LabadminGridFormatError(LabadminError):
+    """Exception for format issues with grids, i.e. a set of plate wells."""
+    def __init__(self, reason):
+        super(LabadminError, self).__init__()
+        self.args = ("%s" % reason, )
+
+
 # class LabadminDBNotImplementedError(LabadminDBError):
 #     """"""
 #     pass

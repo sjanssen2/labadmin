@@ -4,7 +4,8 @@ from datetime import datetime
 from knimin import db
 from knimin.lib.data_access_pm import *
 from knimin.lib.data_access_pm import _add_object, _check_user, _get_objects, \
-                                      _exists, _update_object
+                                      _exists, _update_object, \
+                                      _check_grid_format
 from knimin.lib.sql_connection import TRN
 from knimin.lib.exceptions import *
 
@@ -632,6 +633,39 @@ class TestDataAccessPM(TestCase):
         res = self._remove_db_id([x for x in db.get_plate_types()
                                   if x['plate_type_id'] == id])
         self.assertEqual(res[0]['notes'], 'ut_newNotes_UPDATED')
+
+    def test__check_grid_format(self):
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'Gird must be a list of dictionaries.',
+                                _check_grid_format, 5)
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'Gird must be a list of dictionaries.',
+                                _check_grid_format, [5])
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'At least one of the cells in the grid mis a key "col".',
+                                _check_grid_format, [{'col': 1, 'row': 2}, {'row': 3}])
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'At least one of the cells in the grid mis a key "row".',
+                                _check_grid_format, [{'col': 1, 'row': 2}, {'col': 3}])
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'At least one of the cells in the grid mis a key "barcode".',
+                                _check_grid_format, [{'col': 1, 'row': 2, 'barcode': 'AC'}, {'col': 3, 'row': 4}], ['barcode'])
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'must be positive',
+                                _check_grid_format, [{'col': 1, 'row': -2}, {'col': 3, 'row': 4}], maxrows=8)
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'is larger than maximal row number',
+                                _check_grid_format, [{'col': 1, 'row': 20}, {'col': 3, 'row': 4}], maxrows=8)
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'must be positive',
+                                _check_grid_format, [{'col': -1, 'row': 2}, {'col': 3, 'row': 4}], maxcols=8)
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'is larger than maximal col number',
+                                _check_grid_format, [{'col': 20, 'row': 2}, {'col': 3, 'row': 4}], maxcols=8)
+        self.assertRaisesRegexp(LabadminGridFormatError,
+                                'The grid contains duplicate cells.',
+                                _check_grid_format, [{'col': 1, 'row': 2}, {'row': 1, 'col': 2}])
+        self.assertTrue(_check_grid_format, [{'col': 1, 'row': 1}, {'row': 1, 'col': 2}])
 
 if __name__ == "__main__":
     main()
