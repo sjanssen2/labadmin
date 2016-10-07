@@ -68,6 +68,23 @@ class TestDataAccessPM(TestCase):
         db.get_dna_plate = get_dna_plate
         db.update_dna_plate = update_dna_plate
 
+    def test__check_table_layout(self):
+        # test check for table existence
+        self.assertRaisesRegexp(LabadminDBError,
+                                'does not exist in data base.',
+                                _add_object,
+                                'p1rocessing_robot',
+                                'ut_robi2',
+                                'some notes')
+
+        # test check for table design
+        self.assertRaisesRegexp(LabadminDBError,
+                                'does not have the expected column',
+                                _add_object,
+                                'dna_plate',
+                                'ut_robi2',
+                                'some notes')
+
     def test__add_object(self):
         # test check for table existence
         self.assertRaisesRegexp(LabadminDBError,

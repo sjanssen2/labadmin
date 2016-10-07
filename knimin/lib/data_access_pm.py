@@ -3,6 +3,76 @@ from knimin.lib.exceptions import *
 from sql_connection import TRN
 
 
+def _check_user(email):
+    """ Checks that email is an existing user in the system.
+
+    Parameters
+    ----------
+    email: str
+        The email address that specifies a system user.
+
+    Returns
+    -------
+    True, iff user with email exists in the system.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If no user with the given email exists.
+    """
+    with TRN:
+        sql = """SELECT email FROM ag.labadmin_users WHERE email = %s"""
+        TRN.add(sql, [email])
+        if len(TRN.execute_fetchindex()) == 0:
+            raise LabadminDBUnknownIDError(email, 'ag.labadmin_users')
+        else:
+            return True
+
+
+def _check_table_layout(tbl_name):
+    """ Check if the given table exists and is a three column one.
+
+    Parameters
+    ----------
+    tbl_name: str
+        The name of the table to be checked.
+
+    Returns
+    -------
+    Bool
+        True, iff the table exists and has the three columns
+        [tbl_name_id, name, notes]
+
+    Raises
+    ------
+    LabadminDBError
+        a) If the tbl_name does not exist in the DB.
+        b) If the table does not follow the expected design, which is that the
+           table must have exactly the three columns:
+           [tbl_name_id, name, notes]
+    """
+    with TRN:
+        # check that tbl_name exists in DB
+        sql = """SELECT DISTINCT table_name from INFORMATION_SCHEMA.COLUMNS
+                 WHERE table_schema = 'pm' AND table_name = %s"""
+        TRN.add(sql, [tbl_name])
+        if len(TRN.execute_fetchindex()) != 1:
+            raise LabadminDBError('Table %s does not exist in data base.' %
+                                  tbl_name)
+
+        # check that table has exactly three columns
+        sql = """SELECT column_name from INFORMATION_SCHEMA.COLUMNS
+                 WHERE table_schema = 'pm' AND table_name = %s"""
+        TRN.add(sql, [tbl_name])
+        column_names = [c[0] for c in TRN.execute_fetchindex()]
+        if [tbl_name+'_id', 'name', 'notes'] != column_names:
+            raise LabadminDBError(('Table %s does not have the expected column'
+                                   ' design. It must have exactly the three '
+                                   'columns: "%s_id", "name", "notes"') %
+                                  (tbl_name, tbl_name))
+        return True
+
+
 def _add_object(tbl_name, name, notes=None):
     """ Generalized function to add a new object in a table with three columns:
         (object_id, name, notes), e.g. processing_robot, tm300_8_tool, ...
@@ -33,26 +103,7 @@ def _add_object(tbl_name, name, notes=None):
     LabadminDBDuplicateError
         If an object of the same name already exists.
     """
-
-    with TRN:
-        # check that tbl_name exists in DB
-        sql = """SELECT DISTINCT table_name from INFORMATION_SCHEMA.COLUMNS
-                 WHERE table_schema = 'pm' AND table_name = %s"""
-        TRN.add(sql, [tbl_name])
-        if len(TRN.execute_fetchindex()) != 1:
-            raise LabadminDBError('Table %s does not exist in data base.' %
-                                  tbl_name)
-
-        # check that table has exactly three columns
-        sql = """SELECT column_name from INFORMATION_SCHEMA.COLUMNS
-                 WHERE table_schema = 'pm' AND table_name = %s"""
-        TRN.add(sql, [tbl_name])
-        column_names = [c[0] for c in TRN.execute_fetchindex()]
-        if [tbl_name+'_id', 'name', 'notes'] != column_names:
-            raise LabadminDBError(('Table %s does not have the expected column'
-                                   ' design. It must have exactly the three '
-                                   'columns: "%s_id", "name", "notes"') %
-                                  (tbl_name, tbl_name))
+    _check_table_layout(tbl_name)
 
     # ensure that the object name is not empty
     if not name or len(name) <= 0:
@@ -72,32 +123,6 @@ def _add_object(tbl_name, name, notes=None):
                  RETURNING """+tbl_name+"""_id"""
         TRN.add(sql, [name, notes])
         return int(TRN.execute_fetchindex()[0][0])
-
-
-def _check_user(email):
-    """ Checks that email is an existing user in the system.
-
-    Parameters
-    ----------
-    email: str
-        The email address that specifies a system user.
-
-    Returns
-    -------
-    True, iff user with email exists in the system.
-
-    Raises
-    ------
-    LabadminDBUnknownIDError
-        If no user with the given email exists.
-    """
-    with TRN:
-        sql = """SELECT email FROM ag.labadmin_users WHERE email = %s"""
-        TRN.add(sql, [email])
-        if len(TRN.execute_fetchindex()) == 0:
-            raise LabadminDBUnknownIDError(email, 'ag.labadmin_users')
-        else:
-            return True
 
 
 def _get_objects(tbl_name):
@@ -123,26 +148,8 @@ def _get_objects(tbl_name):
            expected design, which is that the table must have exactly the three
            columns: [tbl_name_id, name, notes]
     """
+    _check_table_layout(tbl_name)
     with TRN:
-        # check that tbl_name exists in DB
-        sql = """SELECT DISTINCT table_name FROM INFORMATION_SCHEMA.COLUMNS
-                 WHERE table_schema = 'pm' AND table_name = %s"""
-        TRN.add(sql, [tbl_name])
-        if len(TRN.execute_fetchindex()) != 1:
-            raise LabadminDBError('Table %s does not exist in data base.' %
-                                  tbl_name)
-
-        # check that table has exactly three columns
-        sql = """SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS
-                 WHERE table_schema = 'pm' AND table_name = %s"""
-        TRN.add(sql, [tbl_name])
-        column_names = [c[0] for c in TRN.execute_fetchindex()]
-        if [tbl_name+'_id', 'name', 'notes'] != column_names:
-            raise LabadminDBError(('Table %s does not have the expected column'
-                                   ' design. It must have exactly the three '
-                                   'columns: "%s_id", "name", "notes"') %
-                                  (tbl_name, tbl_name))
-
         sql = """SELECT * FROM pm.""" + tbl_name
         TRN.add(sql, [])
         return [dict(x) for x in TRN.execute_fetchindex()]
