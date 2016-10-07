@@ -4,7 +4,7 @@ from datetime import datetime
 from knimin import db
 from knimin.lib.data_access_pm import *
 from knimin.lib.data_access_pm import _add_object, _check_user, _get_objects, \
-                                      _exists
+                                      _exists, _update_object
 from knimin.lib.sql_connection import TRN
 from knimin.lib.exceptions import *
 
@@ -50,20 +50,40 @@ class TestDataAccessPM(TestCase):
             TRN.add(sql, ['ut_dnaX'])
             sql = """DELETE FROM pm.sample_plate WHERE name = %s"""
             TRN.add(sql, ['ut_sampleplate1'])
+            sql = """UPDATE pm.processing_robot set notes = %s
+                     WHERE notes = 'ut_newNotes'"""
+            TRN.add(sql, [None])
+            sql = """UPDATE pm.master_mix_lot set notes = %s
+                     WHERE notes = 'ut_newNotes'"""
+            TRN.add(sql, [None])
+            sql = """UPDATE pm.tm300_8_tool set notes = %s
+                     WHERE notes = 'ut_newNotes'"""
+            TRN.add(sql, [None])
+            sql = """UPDATE pm.tm50_8_tool set notes = %s
+                     WHERE notes = 'ut_newNotes'"""
+            TRN.add(sql, [None])
+            sql = """UPDATE pm.water_lot set notes = %s
+                     WHERE notes = 'ut_newNotes'"""
+            TRN.add(sql, [None])
 
             TRN.execute()
 
     def setUp(self):
         db.add_processing_robot = add_processing_robot
         db.get_processing_robots = get_processing_robots
+        db.update_processing_robot = update_processing_robot
         db.add_tm300_8_tool = add_tm300_8_tool
         db.get_tm300_8_tools = get_tm300_8_tools
+        db.update_tm300_8_tool = update_tm300_8_tool
         db.add_tm50_8_tool = add_tm50_8_tool
         db.get_tm50_8_tools = get_tm50_8_tools
+        db.update_tm50_8_tool = update_tm50_8_tool
         db.add_water_lot = add_water_lot
         db.get_water_lots = get_water_lots
+        db.update_water_lot = update_water_lot
         db.add_master_mix_lot = add_master_mix_lot
         db.get_master_mix_lots = get_master_mix_lots
+        db.update_master_mix_lot = update_master_mix_lot
         db.extract_dna_from_sample_plate = extract_dna_from_sample_plate
         db.remove_dna_plate = remove_dna_plate
         db.get_dna_plate = get_dna_plate
@@ -159,6 +179,31 @@ class TestDataAccessPM(TestCase):
         self.assertIn({'notes': None, 'name': 'HOWE_KF1'},
                       self._remove_db_id(_get_objects('extraction_robot')))
 
+    def test__update_object(self):
+        # test check for table existence
+        self.assertRaisesRegexp(LabadminDBError,
+                                'does not exist in data base.',
+                                _get_objects,
+                                'p1rocessing_robot')
+
+        # test check for table design
+        self.assertRaisesRegexp(LabadminDBError,
+                                'does not have the expected column',
+                                _get_objects,
+                                'dna_plate')
+
+        # test check if entry does not exist
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                _update_object,
+                                'processing_robot', 99999, 'ut_newNotes')
+
+        id = [r['processing_robot_id'] for r in db.get_processing_robots()
+              if r['name'] == 'RIKE'][0]
+        _update_object('processing_robot', id, 'ut_newNotes')
+        res = self._remove_db_id(db.get_processing_robots())
+        self.assertIn({'notes': 'ut_newNotes', 'name': 'RIKE'}, res)
+
     def test_add_master_mix_lot(self):
         self.assertRaisesRegexp(ValueError,
                                 'The master_mix_lot name cannot be empty.',
@@ -182,8 +227,19 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_master_mix_lots(self):
-        self.assertEqual([{'notes': None, 'name': '14459'}],
-                         self._remove_db_id(db.get_master_mix_lots()))
+        res = self._remove_db_id(db.get_master_mix_lots())
+        self.assertIn({'notes': None, 'name': '14459'}, res)
+
+    def test_update_master_mix_lot(self):
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.update_master_mix_lot, 99999, 'ut_newNotes')
+
+        id = db.get_master_mix_lots()[0]['master_mix_lot_id']
+        db.update_master_mix_lot(id, 'ut_newNotes')
+        res = self._remove_db_id([x for x in db.get_master_mix_lots()
+                                  if x['master_mix_lot_id'] == id])
+        self.assertEqual(res[0]['notes'], 'ut_newNotes')
 
     def test_add_processing_robot(self):
         self.assertRaisesRegexp(ValueError,
@@ -208,12 +264,23 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_processing_robots(self):
-        self.assertEqual([
-            {'notes': None, 'name': 'ROBE'},
-            {'notes': None, 'name': 'RIKE'},
-            {'notes': None, 'name': 'JERE'},
-            {'notes': None, 'name': 'CARMEN'}],
-            self._remove_db_id(db.get_processing_robots()))
+        res = self._remove_db_id(db.get_processing_robots())
+        self.assertIn({'notes': None, 'name': 'ROBE'}, res)
+        self.assertIn({'notes': None, 'name': 'RIKE'}, res)
+        self.assertIn({'notes': None, 'name': 'JERE'}, res)
+        self.assertIn({'notes': None, 'name': 'CARMEN'}, res)
+
+    def test_update_processing_robot(self):
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.update_processing_robot, 99999,
+                                'ut_newNotes')
+
+        id = db.get_processing_robots()[0]['processing_robot_id']
+        db.update_processing_robot(id, 'ut_newNotes')
+        res = self._remove_db_id([x for x in db.get_processing_robots()
+                                  if x['processing_robot_id'] == id])
+        self.assertEqual(res[0]['notes'], 'ut_newNotes')
 
     def test_add_tm300_8_tool(self):
         self.assertRaisesRegexp(ValueError,
@@ -238,12 +305,22 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_tm300_8_tools(self):
-        self.assertEqual([
-            {'notes': None, 'name': '208484Z'},
-            {'notes': None, 'name': '311318B'},
-            {'notes': None, 'name': '109375A'},
-            {'notes': None, 'name': '3076189'}],
-            self._remove_db_id(db.get_tm300_8_tools()))
+        res = self._remove_db_id(db.get_tm300_8_tools())
+        self.assertIn({'notes': None, 'name': '208484Z'}, res)
+        self.assertIn({'notes': None, 'name': '311318B'}, res)
+        self.assertIn({'notes': None, 'name': '109375A'}, res)
+        self.assertIn({'notes': None, 'name': '3076189'}, res)
+
+    def test_update_tm300_8_tool(self):
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.update_tm300_8_tool, 99999, 'ut_newNotes')
+
+        id = db.get_tm300_8_tools()[0]['tm300_8_tool_id']
+        db.update_tm300_8_tool(id, 'ut_newNotes')
+        res = self._remove_db_id([x for x in db.get_tm300_8_tools()
+                                  if x['tm300_8_tool_id'] == id])
+        self.assertEqual(res[0]['notes'], 'ut_newNotes')
 
     def test_add_tm50_8_tool(self):
         self.assertRaisesRegexp(ValueError,
@@ -268,12 +345,22 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_tm50_8_tools(self):
-        self.assertEqual([
-            {'notes': None, 'name': '108364Z'},
-            {'notes': None, 'name': '311426B'},
-            {'notes': None, 'name': '311441B'},
-            {'notes': None, 'name': '409172Z'}],
-            self._remove_db_id(db.get_tm50_8_tools()))
+        res = self._remove_db_id(db.get_tm50_8_tools())
+        self.assertIn({'notes': None, 'name': '108364Z'}, res)
+        self.assertIn({'notes': None, 'name': '311426B'}, res)
+        self.assertIn({'notes': None, 'name': '311441B'}, res)
+        self.assertIn({'notes': None, 'name': '409172Z'}, res)
+
+    def test_update_tm50_8_tool(self):
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.update_tm50_8_tool, 99999, 'ut_newNotes')
+
+        id = db.get_tm50_8_tools()[0]['tm50_8_tool_id']
+        db.update_tm50_8_tool(id, 'ut_newNotes')
+        res = self._remove_db_id([x for x in db.get_tm50_8_tools()
+                                  if x['tm50_8_tool_id'] == id])
+        self.assertEqual(res[0]['notes'], 'ut_newNotes')
 
     def test_add_water_lot(self):
         self.assertRaisesRegexp(ValueError,
@@ -298,8 +385,19 @@ class TestDataAccessPM(TestCase):
                                 'some notes')
 
     def test_get_water_lots(self):
-        self.assertEqual([{'notes': None, 'name': 'RNBD9959'}],
-                         self._remove_db_id(db.get_water_lots()))
+        res = self._remove_db_id(db.get_water_lots())
+        self.assertIn({'notes': None, 'name': 'RNBD9959'}, res)
+
+    def test_update_water_lot(self):
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.update_water_lot, 99999, 'ut_newNotes')
+
+        id = db.get_water_lots()[0]['water_lot_id']
+        db.update_water_lot(id, 'ut_newNotes')
+        res = self._remove_db_id([x for x in db.get_water_lots()
+                                  if x['water_lot_id'] == id])
+        self.assertEqual(res[0]['notes'], 'ut_newNotes')
 
     def test_extract_dna_from_sample_plate(self):
         sample_plate_id = self._add_sample_plate()

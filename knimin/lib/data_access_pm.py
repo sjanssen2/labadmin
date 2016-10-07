@@ -209,6 +209,39 @@ def _get_objects(tbl_name):
         return [dict(x) for x in TRN.execute_fetchindex()]
 
 
+def _update_object(tbl_name, id, notes):
+    """ Generalized function to update the notes for a table with three
+        columns: (object_id, name, notes), e.g. processing_robot, tm300_8_tool
+
+    Parameters
+    ----------
+    tbl_name: str
+        The DB table name into which the new object should be added.
+    id: int
+        The id of the entry in table 'tbl_name' whose notes shall be changed.
+    notes: str
+        The updated notes text.
+
+    Raises
+    ------
+    LabadminDBError
+        a) If the tbl_name does not exist in the DB.
+        b) If the table in which the object should be added does not follow the
+           expected design, which is that the table must have exactly the three
+           columns: [tbl_name_id, name, notes]
+    LabadminDBUnknownIDError
+        If the given id does not exist in the table 'tbl_name'.
+    """
+    with TRN:
+        _check_table_layout(tbl_name)
+        if not _exists(tbl_name, tbl_name+"_id", id):
+            raise LabadminDBUnknownIDError(id, 'pm.'+tbl_name)
+        sql = """UPDATE pm.""" + tbl_name + """
+                 SET notes = %s WHERE """ + tbl_name + """_id = %s"""
+        TRN.add(sql, [notes, id])
+        TRN.execute()
+
+
 def add_master_mix_lot(name, notes=None):
     """ Adds a new master mix lot.
 
@@ -242,6 +275,24 @@ def get_master_mix_lots():
     List of dicts per row: [{master_mix_lot_id:int, name:str, notes:str}]
     """
     return _get_objects('master_mix_lot')
+
+
+def update_master_mix_lot(master_mix_lot_id, notes):
+    """ Update notes for one master_mix_lot.
+
+    Parameters
+    ----------
+    master_mix_lot_id: int
+        The ID of the master mix lot to be updated.
+    notes: str
+        The new text for the notes of the given master mix lot.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If the given id does not match any master mix lot.
+    """
+    _update_object('master_mix_lot', master_mix_lot_id, notes)
 
 
 def add_processing_robot(name, notes=None):
@@ -279,6 +330,24 @@ def get_processing_robots():
     return _get_objects('processing_robot')
 
 
+def update_processing_robot(processing_robots_id, notes):
+    """ Update notes for one processing robot.
+
+    Parameters
+    ----------
+    processing_robots_id: int
+        The ID of the processing robot to be updated.
+    notes: str
+        The new text for the notes of the given processing robot.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If the given id does not match any processing robots.
+    """
+    _update_object('processing_robot', processing_robots_id, notes)
+
+
 def add_tm300_8_tool(name, notes=None):
     """ Adds a new TM 300-8 tool.
 
@@ -312,6 +381,24 @@ def get_tm300_8_tools():
     List of dicts per row: [{tm300_8_tool_id:int, name:str, notes:str}]
     """
     return _get_objects('tm300_8_tool')
+
+
+def update_tm300_8_tool(tm300_8_tool_id, notes):
+    """ Update notes for one tm300_8_tool.
+
+    Parameters
+    ----------
+    tm300_8_tool_id: int
+        The ID of the TM 300-8 tool to be updated.
+    notes: str
+        The new text for the notes of the given TM 300-8 tool.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If the given id does not match any TM 300-8 tool.
+    """
+    _update_object('tm300_8_tool', tm300_8_tool_id, notes)
 
 
 def add_tm50_8_tool(name, notes=None):
@@ -349,6 +436,24 @@ def get_tm50_8_tools():
     return _get_objects('tm50_8_tool')
 
 
+def update_tm50_8_tool(tm50_8_tool_id, notes):
+    """ Update notes for one master_mix_lot.
+
+    Parameters
+    ----------
+    tm50_8_tool_id: int
+        The ID of the TM 50-8 tool to be updated.
+    notes: str
+        The new text for the notes of the given TM 50-8 tool.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If the given id does not match any TM 50-8 tool.
+    """
+    _update_object('tm50_8_tool', tm50_8_tool_id, notes)
+
+
 def add_water_lot(name, notes=None):
     """ Adds a new water lot.
 
@@ -382,6 +487,24 @@ def get_water_lots():
     List of dicts per row: [{water_lot_id:int, name:str, notes:str}]
     """
     return _get_objects('water_lot')
+
+
+def update_water_lot(water_lot_id, notes):
+    """ Update notes for one water_lot.
+
+    Parameters
+    ----------
+    water_lot_id: int
+        The ID of the water lot to be updated.
+    notes: str
+        The new text for the notes of the given water lot.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If the given id does not match any water lot.
+    """
+    _update_object('water_lot', water_lot_id, notes)
 
 
 def extract_dna_from_sample_plate(name, email, sample_plate_id,
