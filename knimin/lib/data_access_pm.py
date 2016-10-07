@@ -744,3 +744,90 @@ def update_dna_plate(dna_plate_id, name, email, sample_plate_id,
                           extraction_robot_id, extraction_kit_lot_id,
                           extraction_tool_id, notes, dna_plate_id])
             TRN.execute()
+
+
+def add_plate_type(name, cols, rows, notes=None):
+    """ Adds a new plate type.
+
+    Parameters
+    ----------
+    name: str
+        Name of the new plate type.
+    cols: int
+        Number of columns for the new plate type.
+    rows: int
+        Number of rows for the new plate type.
+    notes: str
+        Some notes about new plate type.
+
+    Returns
+    -------
+    int
+        ID of the newly plate type.
+
+    Raises
+    ------
+    ValueError
+        If the plate type name is missing or empty.
+    LabadminDBDuplicateError
+        If a plate type of the same name already exists.
+    """
+    # ensure that the object name is not empty
+    if not name or len(name) <= 0:
+        raise ValueError('The plate_type name cannot be empty.')
+
+    if not cols or cols < 1:
+        raise ValueError('Number of columns cannot be empty or negative.')
+
+    if not rows or rows < 1:
+        raise ValueError('Number of rows cannot be empty or negative.')
+
+    with TRN:
+        # check if an object with the same name already exists
+        if _exists('plate_type', 'name', name):
+            raise LabadminDBDuplicateError('plate_type',
+                                           '%s: %s' % ('name', name))
+        # add the new plate_type to the DB
+        sql = """INSERT INTO pm.plate_type (name, notes, cols, rows)
+                 VALUES (%s, %s, %s, %s)
+                 RETURNING plate_type_id"""
+        TRN.add(sql, [name, notes, cols, rows])
+        return int(TRN.execute_fetchindex()[0][0])
+
+
+def get_plate_types():
+    """ Lists all existing plate types.
+
+    Returns
+    -------
+    List of dicts per row: [{plate_type_id:int, name:str, notes:str,
+                             cols:int, rows:int}]
+    """
+    with TRN:
+        sql = """SELECT * FROM pm.plate_type"""
+        TRN.add(sql, [])
+        return [dict(x) for x in TRN.execute_fetchindex()]
+
+
+def update_plate_type(plate_type_id, notes):
+    """ Update notes for one plate type.
+
+    Parameters
+    ----------
+    plate_type_id: int
+        The ID of the plate type to be updated.
+    notes: str
+        The new text for the notes of the given plate type.
+
+    Raises
+    ------
+    LabadminDBUnknownIDError
+        If the given id does not match any plate types.
+    """
+    with TRN:
+        if not _exists('plate_type', 'plate_type_id', plate_type_id):
+            raise LabadminDBUnknownIDError(plate_type_id, 'pm.plate_type')
+        sql = """UPDATE pm.plate_type
+                 SET notes = %s WHERE plate_type_id = %s"""
+        TRN.add(sql, [notes, plate_type_id])
+        TRN.execute()

@@ -65,7 +65,12 @@ class TestDataAccessPM(TestCase):
             sql = """UPDATE pm.water_lot set notes = %s
                      WHERE notes = 'ut_newNotes'"""
             TRN.add(sql, [None])
-
+            sql = """UPDATE pm.plate_type set notes = %s
+                     WHERE notes = 'ut_newNotes'"""
+            TRN.add(sql, [None])
+            TRN.add(sql, ['ut_newNotes_UPDATED'])
+            sql = """DELETE FROM pm.plate_type WHERE name = %s"""
+            TRN.add(sql, ['ut_pt1'])
             TRN.execute()
 
     def setUp(self):
@@ -88,6 +93,9 @@ class TestDataAccessPM(TestCase):
         db.remove_dna_plate = remove_dna_plate
         db.get_dna_plate = get_dna_plate
         db.update_dna_plate = update_dna_plate
+        db.add_plate_type = add_plate_type
+        db.get_plate_types = get_plate_types
+        db.update_plate_type = update_plate_type
 
     def test__check_table_layout(self):
         # test check for table existence
@@ -572,6 +580,58 @@ class TestDataAccessPM(TestCase):
             'notes': 'my third dna plate', 'dna_plate_id': dna_plate_id1,
             'created_on': datetime(1999, 2, 8, 0, 0), 'extraction_tool_id': 1L,
             'email': 'test'}, db.get_dna_plate(dna_plate_id1))
+
+    def test_add_plate_type(self):
+        self.assertRaisesRegexp(ValueError,
+                                'The plate_type name cannot be empty.',
+                                db.add_plate_type,
+                                None, 3, 5, 'some notes')
+        self.assertRaisesRegexp(ValueError,
+                                'The plate_type name cannot be empty.',
+                                db.add_plate_type,
+                                '', 3, 5, 'some notes')
+        self.assertRaisesRegexp(ValueError,
+                                ('Number of columns cannot be empty or '
+                                 'negative.'),
+                                db.add_plate_type,
+                                'ut_pt1', None, 5, 'some notes')
+        self.assertRaisesRegexp(ValueError,
+                                ('Number of columns cannot be empty or '
+                                 'negative.'),
+                                db.add_plate_type,
+                                'ut_pt1', -1, 5, 'some notes')
+        self.assertRaisesRegexp(ValueError,
+                                'Number of rows cannot be empty or negative.',
+                                db.add_plate_type,
+                                'ut_pt1', 3, None, 'some notes')
+        self.assertRaisesRegexp(ValueError,
+                                'Number of rows cannot be empty or negative.',
+                                db.add_plate_type,
+                                'ut_pt1', 3, -5, 'some notes')
+        db.add_plate_type('ut_pt1', 3, 5, 'some notes')
+        self.assertRaisesRegexp(LabadminDBDuplicateError,
+                                'already exists.',
+                                db.add_plate_type,
+                                'ut_pt1', 3, 5, 'some notes')
+
+    def test_get_plate_types(self):
+        db.add_plate_type('ut_pt1', 3, 5, 'some notes')
+        res = self._remove_db_id(db.get_plate_types())
+        self.assertIn({'notes': 'some notes', 'name': 'ut_pt1',
+                       'rows': 5, 'cols': 3}, res)
+        self.assertIn({'notes': 'Standard 96-well plate', 'name': '96-well',
+                       'rows': 8, 'cols': 12}, res)
+
+    def test_update_plate_type(self):
+        id = db.add_plate_type('ut_pt1', 3, 5, 'ut_newNotes')
+        self.assertRaisesRegexp(LabadminDBUnknownIDError,
+                                "The object with ID '%i' does not" % 99999,
+                                db.update_plate_type, 99999, 'ut_newNotes')
+
+        db.update_plate_type(id, 'ut_newNotes_UPDATED')
+        res = self._remove_db_id([x for x in db.get_plate_types()
+                                  if x['plate_type_id'] == id])
+        self.assertEqual(res[0]['notes'], 'ut_newNotes_UPDATED')
 
 if __name__ == "__main__":
     main()
