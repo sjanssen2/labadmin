@@ -323,7 +323,8 @@ FAQ section for when you can expect results.<br/>
                           'email_type': '1', 'name': 'REMOVED',
                           'sample_time': time(6, 50),
                           'notes': 'REMOVED',
-                          'email': 'REMOVED'})
+                          'email': 'REMOVED',
+                          'sample_environments': 'Human'})
 
         # check that None values are set to ''
         barcode = '000016744'

@@ -198,7 +198,8 @@ class TestDataAccess(TestCase):
                'sample_date': datetime.date(2014, 8, 13),
                'date_of_last_email': datetime.date(2014, 8, 15),
                'other_text': 'REMOVED',
-               'site_sampled': 'Stool'}
+               'site_sampled': 'Stool',
+               'sample_environments': 'Human'}
         self.assertEqual(obs, exp)
 
     def test_get_barcode_info_by_kit_id(self):
