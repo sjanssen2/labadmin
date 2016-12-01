@@ -2203,7 +2203,8 @@ class KniminAccess(object):
             return {}
         else:
             res = dict(results)
-            res['sample_environments'] = ",".join(self.get_barcode_environment_types(barcode))
+            res['sample_environments'] = \
+                ",".join(self.get_barcode_environment_types(barcode))
             return res
 
     def get_barcode_info_by_kit_id(self, ag_kit_id):
