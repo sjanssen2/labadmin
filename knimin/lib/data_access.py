@@ -2202,7 +2202,9 @@ class KniminAccess(object):
         if not results:
             return {}
         else:
-            return dict(results)
+            res = dict(results)
+            res['sample_environments'] = ",".join(self.get_barcode_environment_types(barcode))
+            return res
 
     def get_barcode_info_by_kit_id(self, ag_kit_id):
         sql = """SELECT DISTINCT cast(ag_kit_barcode_id as varchar(100)) as
@@ -2422,3 +2424,61 @@ class KniminAccess(object):
                  SET results_ready = NULL
                  WHERE barcode IN %s"""
         self._con.execute(sql, [tuple(barcodes)])
+
+    def get_barcode_environment_types(self, barcode):
+        # TODO: write test code once test data have been dumped into DB!
+        """ Returns the environments of the given barcode.
+
+        Parameters
+        ----------
+        barcode : str
+            A single AG barcode ID
+
+        Returns
+        -------
+        list of environments, i.e. survey types that have been associated
+        with this barcode.
+
+        Raises
+        ------
+        ValueError
+            given barcode not in DB."""
+
+        environments = []
+
+        # check if the barcode exists in the DB at all
+        sql = """SELECT barcode
+                 FROM ag.ag_kit_barcodes
+                 WHERE barcode = %s"""
+        res = self._con.execute_fetchone(sql, [barcode])
+        if res is None:
+            raise ValueError("Barcode '%s' not in DB." % barcode)
+
+        sql = """SELECT DISTINCT ags.survey_id
+                 FROM ag.ag_kit_barcodes
+                 JOIN ag.survey_answers USING (survey_id)
+                 JOIN ag.group_questions USING (survey_question_id)
+                 JOIN ag.surveys ags USING (survey_group)
+                 WHERE barcode = %s"""
+        res = self._con.execute_fetchall(sql, [barcode])
+        if len(res) > 0:
+            if res[0] == [1]:
+                environments.append('Human')
+            elif res[0] == [2]:
+                # find out what species it is
+                sql = """SELECT response
+                         FROM ag.ag_kit_barcodes
+                         JOIN ag.survey_answers USING (survey_id)
+                         WHERE barcode = %s AND survey_question_id = 128"""
+                res = self._con.execute_fetchone(sql, [barcode])
+                environments.append('Animal(%s)' % res[0])
+
+        sql = """SELECT environment_sampled
+                 FROM ag.ag_kit_barcodes
+                 WHERE barcode = %s"""
+        res = self._con.execute_fetchall(sql, [barcode])
+
+        if (len(res) > 0) and (res[0][0] is not None):
+            environments.append('Environment(%s)' % res[0][0])
+
+        return environments
