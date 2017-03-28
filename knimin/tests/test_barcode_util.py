@@ -318,9 +318,8 @@ FAQ section for when you can expect results.<br/>
         del ag_details['overloaded']
         del ag_details['other']
         del ag_details['deposited']
-        exp = {
+        exp = {'environment_sampled': '', 'withdrawn': '',
                # 'login_user': 'REMOVED',
-               'environment_sampled': '', 'withdrawn': '',
                'ag_kit_id': 'd8592c74-7ddb-2135-e040-8a80115d6401',
                'overloaded_checked': '',
                # 'participant_name': 'REMOVED-0',
@@ -336,7 +335,7 @@ FAQ section for when you can expect results.<br/>
                'sample_time': time(6, 50),
                # 'notes': 'REMOVED',
                # 'email': 'REMOVED'
-              }
+               }
         # only look at those fields, that are not subject to scrubbing
         self.assertEqual({k: ag_details[k] for k in exp}, exp)
         exp_keys = ['login_user', 'environment_sampled', 'withdrawn',
