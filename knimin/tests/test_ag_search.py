@@ -61,14 +61,13 @@ class testAGSearchHandler(TestHandlerBase):
             for sample in db.get_barcode_info_by_kit_id(kit_id):
                 for field in sample:
                     if sample[field] is not None:
-                        if (field == 'ag_kit_id') or (
-                             field == 'ag_kit_barcode_id'):
+                        if (field == 'ag_kit_id') or
+                        (field == 'ag_kit_barcode_id'):
                             self.assertNotIn(sample[field], response.body)
                         else:
                             exp = xhtml_escape_recursive(sample[field])
                             self.assertIn(str(exp),
                                           response.body)
-
 
 
 if __name__ == '__main__':
