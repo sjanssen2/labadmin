@@ -342,7 +342,9 @@ FAQ section for when you can expect results.<br/>
                     'ag_kit_barcode_id', 'sample_date', 'other_checked',
                     'status', 'refunded', 'other_text', 'barcode',
                     'moldy_checked', 'date_of_last_email', 'site_sampled',
-                    'email_type', 'name', 'sample_time', 'notes', 'email']
+                    'email_type', 'name', 'sample_time', 'notes', 'email',
+                    u'sample_environments']
+        self.maxDiff = None
         self.assertEqual(sorted(ag_details.keys()), sorted(exp_keys))
 
         # check that None values are set to ''
