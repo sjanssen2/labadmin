@@ -2441,7 +2441,6 @@ class KniminAccess(object):
         self._con.execute(sql, [tuple(barcodes)])
 
     def get_barcode_environment_types(self, barcode):
-        # TODO: write test code once test data have been dumped into DB!
         """ Returns the environments of the given barcode.
 
         Parameters
