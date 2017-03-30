@@ -329,6 +329,43 @@ class TestDataAccess(TestCase):
             self.assertEqual({k: obs[key][k] for k in exp[key]}, exp[key])
             self.assertIn(obs[key]['participant_name'], participant_names)
 
+    def test_get_barcode_environment_types(self):
+        # check that error is raised, if barcode is not in database
+        barcode = '9notInDB1'
+        with self.assertRaises(ValueError) as e:
+            db.get_barcode_environment_types(barcode)
+        self.assertEqual(e.exception.message,
+                         u"Barcode '%s' not in DB." % barcode)
+
+        # barcode that is not assigned to a survey, result should be the empty
+        # list
+        barcode = '000027834'
+        exp = []
+        obs = db.get_barcode_environment_types(barcode)
+        self.assertEqual(obs, exp)
+
+        # environmental barcode
+        barcode = '000015774'
+        exp = [u'Environment(Sole of shoe)']
+        obs = db.get_barcode_environment_types(barcode)
+        self.assertEqual(obs, exp)
+
+        # human barcode
+        barcode = '000004216'
+        exp = [u'Human', u'Environment(None)']
+        obs = db.get_barcode_environment_types(barcode)
+        self.assertEqual(obs, exp)
+
+        # animal barcodes
+        barcode = '000002012'
+        exp = [u'Animal(Dog)']
+        obs = db.get_barcode_environment_types(barcode)
+        self.assertEqual(obs, exp)
+        barcode = '000013439'
+        exp = [u'Animal(Large Mammal)']
+        obs = db.get_barcode_environment_types(barcode)
+        self.assertEqual(obs, exp)
+
 
 if __name__ == "__main__":
     main()
