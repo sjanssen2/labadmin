@@ -352,7 +352,7 @@ class TestDataAccess(TestCase):
 
         # human barcode
         barcode = '000004216'
-        exp = [u'Human', u'Environment(None)']
+        exp = [u'Human']
         obs = db.get_barcode_environment_types(barcode)
         self.assertEqual(obs, exp)
 
