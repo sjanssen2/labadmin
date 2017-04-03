@@ -299,6 +299,7 @@ class KniminAccess(object):
         self._con = SQLHandler(config)
         self._con.execute('set search_path to ag, barcodes, public')
         self.config = config
+        self.warned_once = False
 
     def _get_col_names_from_cursor(self, cur):
         if cur.description:
@@ -487,15 +488,15 @@ class KniminAccess(object):
                 FROM (SELECT DISTINCT ag_login_id,
                                       participant_name,
                                       array_agg(survey_id) AS survey_ids
-                FROM ag.ag_login_surveys
-                GROUP BY ag_login_id, participant_name) AS foo
+                      FROM ag.ag_login_surveys
+                      GROUP BY ag_login_id, participant_name) AS foo
                 where array_length(survey_ids, 1) > 1"""
 
         # create a view of all of the barcodes associated with the participants
         s2 = """CREATE OR REPLACE TEMP VIEW participant_barcodes AS
                 SELECT ag_login_id, participant_name, barcode
-                FROM multiple_ids mi JOIN
-                ag.ag_kit_barcodes USING(survey_id)"""
+                FROM multiple_ids mi
+                LEFT JOIN ag.ag_kit_barcodes USING(survey_id)"""
 
         # produce the cartesian product of barcodes and survey ids into a temp
         # view that is in a common column structure to ag_kit_barcodes
@@ -503,7 +504,7 @@ class KniminAccess(object):
                 SELECT ag_kit_barcode_id,
                        ag_kit_id,
                        barcode,
-                       mi.survey_id,
+                       survey_id,
                        sample_barcode_file,
                        sample_barcode_file_md5,
                        site_sampled,
@@ -521,12 +522,17 @@ class KniminAccess(object):
                        refunded,
                        deposited
                 FROM ag.ag_kit_barcodes akb
-                JOIN participant_barcodes pb USING(barcode)
-                JOIN multiple_ids mi USING (ag_login_id, participant_name)"""
+                LEFT JOIN participant_barcodes pb USING(barcode)
+                LEFT JOIN multiple_ids mi USING (ag_login_id,
+                                                 participant_name,
+                                                 survey_id)"""
 
-        sys.stderr.write("WARNING: This is an extremely ugly hack. We need to"
-                         " replace find a more apropriate solution soon. "
-                         "(Stefan Janssen 4/2/2017, see issue #184)\n")
+        if self.warned_once is False:
+            sys.stderr.write("WARNING: This is an extremely ugly hack. We need"
+                             " to replace find a more apropriate solution soon"
+                             ". (Stefan Janssen 4/2/2017, see issue #184)\n")
+            self.warned_once = True
+
         return s1 + ";\n" + s2 + ";\n" + s3 + ";\n" + \
             sql.replace('ag.ag_kit_barcodes', 'like_ag_kit_barcodes')
 

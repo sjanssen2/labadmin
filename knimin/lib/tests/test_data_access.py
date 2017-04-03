@@ -348,6 +348,7 @@ class TestDataAccess(TestCase):
         # barcodes as participant_barcodes (values relative to the test
         # database)
         sql = """SELECT COUNT(DISTINCT(barcode)) FROM participant_barcodes"""
+        sql = db._fix_sql_statements(sql)
         obs = db._con.execute_fetchone(sql)
         exp = [871]
         self.assertEqual(obs, exp)
@@ -357,6 +358,7 @@ class TestDataAccess(TestCase):
         self.assertIn('FROM like_ag_kit_barcodes', sql)
         self.assertNotIn('(barcode)) FROM ag.ag_kit_barcodes', sql)
         obs = db._con.execute_fetchone(sql)
+        exp = [28865]
         self.assertEqual(obs, exp)
 
         # however, the resulting table does not have the same number of
@@ -366,7 +368,7 @@ class TestDataAccess(TestCase):
         self.assertIn('FROM like_ag_kit_barcodes', sql)
         self.assertNotIn('(survey_id)) FROM ag.ag_kit_barcodes', sql)
         obs = db._con.execute_fetchone(sql)
-        exp = [599]
+        exp = [11838]
         self.assertEqual(obs, exp)
 
         sql = """SELECT COUNT(DISTINCT(survey_id)) FROM multiple_ids"""
@@ -389,6 +391,7 @@ class TestDataAccess(TestCase):
         obs = db._con.execute_fetchone(sql)
         exp = None
         self.assertEqual(obs, exp)
+
 
 if __name__ == "__main__":
     main()
