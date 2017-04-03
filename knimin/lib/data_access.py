@@ -9,6 +9,7 @@ from hashlib import sha512
 from datetime import datetime, time, timedelta
 import json
 import re
+import sys
 
 from bcrypt import hashpw, gensalt
 from future.utils import viewitems
@@ -443,7 +444,7 @@ class KniminAccess(object):
             {barcode: {column: value}, ...}
         """
         sql = """SELECT DISTINCT barcode, *
-                 FROM ag_kit_barcodes
+                 FROM ag.ag_kit_barcodes
                  JOIN ag_kit USING (ag_kit_id)
                  FULL OUTER JOIN ag_login_surveys USING
                     (survey_id, ag_login_id)
@@ -451,6 +452,83 @@ class KniminAccess(object):
                  WHERE barcode in %s"""
         res = self._con.execute_fetchall(sql, [tuple(b[:9] for b in barcodes)])
         return {row[0]: dict(row) for row in res}
+
+    def _fix_sql_statements(self, sql):
+        """ Cope with the buggy situation that ag.ag_kit_barcodes stores only
+            the latest, but not all survey_ids.
+
+        Parameters
+        ----------
+        sql : str
+            The original SQL statement using table ag.ag_kit_barcodes
+
+        Returns
+        -------
+        sql : str, where ag.ag_kit_barcodes is replaces with the temporary view
+        like_ag_kit_barcodes, which is created on SQL execution.
+
+        Notes
+        -----
+        During evolution of AGP / labadmin the 1:1 assocication between barcode
+        and survey_id got lost. Unfortunately, the ag_kit_barcodes enforces the
+        survey_id to be unique and db functions replaced instead of added
+        additional surveys (like fermented food or survers). The missing
+        information can be restored with the SQL statements below, but we
+        should fix the DB table itself, rather than using this ugly hack!
+        Due to deadlines, we need to use this hack for now. But see issue #184.
+        Since this is a severe problem, I print warning whenever this function
+        is used."""
+
+        # create a view of all of the participants with multiple survey ids
+        s1 = """CREATE OR REPLACE TEMP VIEW multiple_ids AS
+                SELECT ag_login_id,
+                       participant_name,
+                       unnest(survey_ids) AS survey_id
+                FROM (SELECT DISTINCT ag_login_id,
+                                      participant_name,
+                                      array_agg(survey_id) AS survey_ids
+                FROM ag.ag_login_surveys
+                GROUP BY ag_login_id, participant_name) AS foo
+                where array_length(survey_ids, 1) > 1"""
+
+        # create a view of all of the barcodes associated with the participants
+        s2 = """CREATE OR REPLACE TEMP VIEW participant_barcodes AS
+                SELECT ag_login_id, participant_name, barcode
+                FROM multiple_ids mi JOIN
+                ag.ag_kit_barcodes USING(survey_id)"""
+
+        # produce the cartesian product of barcodes and survey ids into a temp
+        # view that is in a common column structure to ag_kit_barcodes
+        s3 = """CREATE OR REPLACE TEMP VIEW like_ag_kit_barcodes AS
+                SELECT ag_kit_barcode_id,
+                       ag_kit_id,
+                       barcode,
+                       mi.survey_id,
+                       sample_barcode_file,
+                       sample_barcode_file_md5,
+                       site_sampled,
+                       sample_date,
+                       sample_time,
+                       notes,
+                       environment_sampled,
+                       moldy,
+                       overloaded,
+                       other,
+                       other_text,
+                       date_of_last_email,
+                       results_ready,
+                       withdrawn,
+                       refunded,
+                       deposited
+                FROM ag.ag_kit_barcodes akb
+                JOIN participant_barcodes pb USING(barcode)
+                JOIN multiple_ids mi USING (ag_login_id, participant_name)"""
+
+        sys.stderr.write("WARNING: This is an extremely ugly hack. We need to"
+                         " replace find a more apropriate solution soon. "
+                         "(Stefan Janssen 4/2/2017, see issue #184)\n")
+        return s1 + ";\n" + s2 + ";\n" + s3 + ";\n" + \
+            sql.replace('ag.ag_kit_barcodes', 'like_ag_kit_barcodes')
 
     def get_surveys(self, barcodes):  # noqa
         """Retrieve surveys for specific barcodes
@@ -487,6 +565,7 @@ class KniminAccess(object):
                WHERE survey_response_type='SINGLE'
                    AND (withdrawn IS NULL OR withdrawn != 'Y')
                    AND barcode in %s"""
+        single_sql = self._fix_sql_statements(single_sql)
 
         # MULTIPLE answers SQL
         multiple_sql = \
@@ -502,6 +581,7 @@ class KniminAccess(object):
                    AND (withdrawn IS NULL OR withdrawn != 'Y')
                    AND barcode in %s
                GROUP BY S.survey_id, barcode, question_shortname"""
+        multiple_sql = self._fix_sql_statements(multiple_sql)
 
         # Also need to get the possible responses for multiples
         multiple_responses_sql = \
@@ -510,6 +590,8 @@ class KniminAccess(object):
                JOIN survey_question_response_type USING (survey_question_id)
                JOIN survey_question_response USING (survey_question_id)
                WHERE survey_response_type = 'MULTIPLE'"""
+        multiple_responses_sql = self._fix_sql_statements(
+            multiple_responses_sql)
 
         # STRING and TEXT answers SQL
         others_sql = \
@@ -523,7 +605,7 @@ class KniminAccess(object):
                WHERE survey_response_type IN ('STRING', 'TEXT')
                    AND (withdrawn IS NULL OR withdrawn != 'Y')
                    AND barcode IN %s"""
-
+        others_sql = self._fix_sql_statements(others_sql)
         # Get third party surveys, if there is one and one is requested
 
         # Formats a question and response for a MULTIPLE question into a header
@@ -1417,7 +1499,7 @@ class KniminAccess(object):
         self._con.executemany(barcode_project_insert, project_inserts)
 
         # Add barcodes to the kit
-        sql = """INSERT  INTO ag_kit_barcodes
+        sql = """INSERT  INTO ag.ag_kit_barcodes
                 (ag_kit_id, barcode, sample_barcode_file)
                 VALUES (%s, %s, %s || '.jpg')"""
         barcode_info = [[ag_kit_id, b, b] for b in barcodes]
@@ -1873,7 +1955,7 @@ class KniminAccess(object):
         sample_time = sample_time or None
         notes = notes or None
 
-        sql = """UPDATE  ag_kit_barcodes
+        sql = """UPDATE  ag.ag_kit_barcodes
                  SET ag_kit_id = %s,
                      site_sampled = %s,
                      environment_sampled = %s,
@@ -2111,7 +2193,7 @@ class KniminAccess(object):
             sql_args.append(date_of_last_email)
         sql_args.append(barcode)
 
-        sql = """UPDATE  ag_kit_barcodes
+        sql = """UPDATE  ag.ag_kit_barcodes
                  SET moldy = %s, overloaded = %s, other = %s,
                      other_text = %s{}
                  WHERE barcode = %s""".format(update_date)
@@ -2169,7 +2251,7 @@ class KniminAccess(object):
         sql = """SELECT DISTINCT
                     cast(ag_login_id as varchar(100)) as ag_login_id
                  FROM ag_kit ak
-                 INNER JOIN ag_kit_barcodes akb USING (ag_kit_id)
+                 INNER JOIN ag.ag_kit_barcodes akb USING (ag_kit_id)
                  FULL OUTER JOIN ag_login_surveys USING
                     (survey_id, ag_login_id)
                  WHERE barcode like %s or lower(participant_name) like
@@ -2226,7 +2308,7 @@ class KniminAccess(object):
                     participant_name, notes, refunded, withdrawn, moldy, other,
                     other_text, date_of_last_email ,overloaded, name, status,
                     deposited
-                 FROM ag_kit_barcodes akb
+                 FROM ag.ag_kit_barcodes akb
                  JOIN ag_kit USING(ag_kit_id)
                  JOIN ag_login USING (ag_login_id)
                  FULL OUTER JOIN ag_login_surveys USING
@@ -2246,7 +2328,7 @@ class KniminAccess(object):
                          ag_kit_id, barcode, sample_date, sample_time,
                          site_sampled, environment_sampled, participant_name,
                          notes, results_ready, withdrawn, refunded
-                 FROM    ag_kit_barcodes
+                 FROM    ag.ag_kit_barcodes
                  FULL OUTER JOIN ag_login_surveys USING (survey_id)
                  WHERE   ag_kit_id = %s"""
 
@@ -2364,7 +2446,8 @@ class KniminAccess(object):
         Returns metadata for an american gut barcode in the new database
         tables
         """
-        sql = "SELECT EXISTS(SELECT * from ag_kit_barcodes WHERE barcode = %s)"
+        sql = """SELECT EXISTS(SELECT * from ag.ag_kit_barcodes
+                 WHERE barcode = %s)"""
         return self._con.execute_fetchone(sql, [barcode])[0]
 
     def get_plate_for_barcode(self, barcode):
