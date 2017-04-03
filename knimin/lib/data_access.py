@@ -529,8 +529,8 @@ class KniminAccess(object):
 
         if self.warned_once is False:
             sys.stderr.write("WARNING: This is an extremely ugly hack. We need"
-                             " to replace find a more apropriate solution soon"
-                             ". (Stefan Janssen 4/2/2017, see issue #184)\n")
+                             " to find a more apropriate solution soon. "
+                             "(Stefan Janssen 4/2/2017, see issue #184)\n")
             self.warned_once = True
 
         return s1 + ";\n" + s2 + ";\n" + s3 + ";\n" + \
