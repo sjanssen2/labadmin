@@ -343,6 +343,52 @@ class TestDataAccess(TestCase):
                  (-5, 'Personal_Microbiome', False)]
         self.assertItemsEqual(db.list_ag_surveys([-2, -4]), truth)
 
+    def test__fix_sql_statements(self):
+        # the resulting like_ag_kit_barcodes table has the same number of
+        # barcodes as participant_barcodes (values relative to the test
+        # database)
+        sql = """SELECT COUNT(DISTINCT(barcode)) FROM participant_barcodes"""
+        obs = db._con.execute_fetchone(sql)
+        exp = [871]
+        self.assertEqual(obs, exp)
+
+        sql = """SELECT COUNT(DISTINCT(barcode)) FROM ag.ag_kit_barcodes"""
+        sql = db._fix_sql_statements(sql)
+        self.assertIn('FROM like_ag_kit_barcodes', sql)
+        self.assertNotIn('(barcode)) FROM ag.ag_kit_barcodes', sql)
+        obs = db._con.execute_fetchone(sql)
+        self.assertEqual(obs, exp)
+
+        # however, the resulting table does not have the same number of
+        # survey IDs
+        sql = """SELECT COUNT(DISTINCT(survey_id)) FROM ag.ag_kit_barcodes"""
+        sql = db._fix_sql_statements(sql)
+        self.assertIn('FROM like_ag_kit_barcodes', sql)
+        self.assertNotIn('(survey_id)) FROM ag.ag_kit_barcodes', sql)
+        obs = db._con.execute_fetchone(sql)
+        exp = [599]
+        self.assertEqual(obs, exp)
+
+        sql = """SELECT COUNT(DISTINCT(survey_id)) FROM multiple_ids"""
+        obs = db._con.execute_fetchone(sql)
+        exp = [652]
+        self.assertEqual(obs, exp)
+
+        # the difference in survey IDs potentially can be explained by
+        # individuals who had take multiple surveys but never recorded a
+        # sample. by spot checking, this appears to be the case
+        sql = """SELECT *
+                 FROM ag.ag_kit_barcodes akb
+                 JOIN (
+                    SELECT DISTINCT(survey_id), ag_login_id
+                    FROM multiple_ids
+                    WHERE survey_id NOT IN (
+                        SELECT DISTINCT(survey_id)
+                        FROM like_ag_kit_barcodes)) AS FOO
+                 USING (survey_id)"""
+        obs = db._con.execute_fetchone(sql)
+        exp = None
+        self.assertEqual(obs, exp)
 
 if __name__ == "__main__":
     main()
