@@ -504,7 +504,10 @@ class KniminAccess(object):
                 SELECT ag_kit_barcode_id,
                        ag_kit_id,
                        barcode,
-                       multiple_ids.survey_id,
+                       CASE WHEN multiple_ids.survey_id IS NOT NULL
+                            THEN multiple_ids.survey_id
+                            ELSE ag.ag_kit_barcodes.survey_id
+                       END,
                        sample_barcode_file,
                        sample_barcode_file_md5,
                        site_sampled,
@@ -523,7 +526,7 @@ class KniminAccess(object):
                        deposited
                 FROM participant_barcodes
                 JOIN multiple_ids USING (ag_login_id, participant_name)
-                JOIN ag.ag_kit_barcodes USING (barcode)"""
+                FULL JOIN ag.ag_kit_barcodes USING (barcode)"""
 
         if self.warned_once is False:
             sys.stderr.write("WARNING: This is an extremely ugly hack. We need"
