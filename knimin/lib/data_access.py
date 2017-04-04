@@ -1534,19 +1534,18 @@ class KniminAccess(object):
         -----
         Barcodes are returned in ascending order
         """
-        sql_args = None
         sql = """SELECT DISTINCT barcode FROM barcodes.barcode
                  LEFT JOIN barcodes.project_barcode pb USING (barcode)
                  WHERE pb.barcode IS NULL
                  ORDER BY barcode ASC"""
+        barcodes = self._con.execute_fetchall(sql)
         if n is not None:
-            sql += " LIMIT %s"
-            sql_args = [n]
-        barcodes = [x[0] for x in self._con.execute_fetchall(sql, sql_args)]
-        if len(barcodes) < n:
-            raise ValueError("Not enough barcodes! %d asked for, %d remaining"
-                             % (n, len(barcodes)))
-        return barcodes
+            if len(barcodes) < n:
+                raise ValueError(
+                    "Not enough barcodes! %d asked for, %d remaining"
+                    % (n, len(barcodes)))
+            barcodes = barcodes[:n]
+        return [x[0] for x in barcodes]
 
     def assign_barcodes(self, num_barcodes, projects):
         """Assign a given number of barcodes to projects
@@ -1685,6 +1684,30 @@ class KniminAccess(object):
                  VALUES (%s, %s, %s)
                  RETURNING external_survey_id"""
         return self._con.execute_fetchone(sql, [survey, description, url])[0]
+
+    def list_ag_surveys(self, selected=None):
+        """Returns the list of american gut survey names.
+
+        Parameters
+        ----------
+        selected : list of int
+            The returned list's third element indicates if a survey has been
+            "chosen". If selected is None, all surveys will be "chosen",
+            otherwise only surveys whose ID is in selected are "chosen".
+
+        Returns
+        -------
+        list of (int, str, bool)
+            first element is the group_order number
+            second element is the group name
+            third element is the information if user selected this survey for
+                  pulldown. All surveys are selected if selected is None.
+        """
+        sql = """SELECT group_order, american
+                FROM ag.survey_group
+                WHERE group_order < 0"""
+        return [(id_, name, (selected is None) or (id_ in selected))
+                for [id_, name] in self._con.execute_fetchall(sql)]
 
     def list_external_surveys(self):
         """Returns list of external survey names
@@ -2562,6 +2585,30 @@ class KniminAccess(object):
         if not info:
             raise ValueError('No handout barcodes found.')
         return info[0]
+
+    def ut_get_arbitrary_non_ag_barcode(self):
+        """Returns an artibtrarily chosen non-AG barcode
+        For unit testing only!
+
+        Returns
+        -------
+        str: barcode
+            Example: '000001000'
+
+        Raises
+        ------
+        ValueError
+            If no non-AG barcode can be found in the DB.
+        """
+        sql = """SELECT barcode FROM barcodes.project_barcode
+                    WHERE project_id != 1 AND barcode != '000000001'
+                 EXCEPT
+                 SELECT barcode FROM barcodes.project_barcode
+                    WHERE project_id = 1;"""
+        info = self._con.execute_fetchall(sql)
+        if not info:
+            raise ValueError('No non-AG barcodes found')
+        return info[0][0]
 
     def ut_get_arbitrary_unassigned_barcode(self):
         """ Returns an arbitrarily chosen unassigned barcode.
