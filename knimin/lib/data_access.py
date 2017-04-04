@@ -496,7 +496,7 @@ class KniminAccess(object):
         s2 = """CREATE OR REPLACE TEMP VIEW participant_barcodes AS
                 SELECT ag_login_id, participant_name, barcode
                 FROM multiple_ids mi
-                LEFT JOIN ag.ag_kit_barcodes USING(survey_id)"""
+                JOIN ag.ag_kit_barcodes USING(survey_id)"""
 
         # produce the cartesian product of barcodes and survey ids into a temp
         # view that is in a common column structure to ag_kit_barcodes
@@ -504,7 +504,7 @@ class KniminAccess(object):
                 SELECT ag_kit_barcode_id,
                        ag_kit_id,
                        barcode,
-                       survey_id,
+                       multiple_ids.survey_id,
                        sample_barcode_file,
                        sample_barcode_file_md5,
                        site_sampled,
@@ -521,11 +521,9 @@ class KniminAccess(object):
                        withdrawn,
                        refunded,
                        deposited
-                FROM ag.ag_kit_barcodes akb
-                LEFT JOIN participant_barcodes pb USING(barcode)
-                LEFT JOIN multiple_ids mi USING (ag_login_id,
-                                                 participant_name,
-                                                 survey_id)"""
+                FROM participant_barcodes
+                JOIN multiple_ids USING (ag_login_id, participant_name)
+                JOIN ag.ag_kit_barcodes USING (barcode)"""
 
         if self.warned_once is False:
             sys.stderr.write("WARNING: This is an extremely ugly hack. We need"
