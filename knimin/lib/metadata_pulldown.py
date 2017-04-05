@@ -20,7 +20,11 @@ def gather_agsurveys():
                            (config.db_user, config.db_password, config.db_host,
                             config.db_port, config.db_database))
 
-    # retrieve survey data from SQL database
+    # retrieve survey data from SQL database in two runs, because the are two
+    # different tables. Table ag.survey_answers holds all "normal" questions
+    # and table ag.survey_answers_other holds all questions that can be
+    # answered with a free text; thus be careful because they can contain HIPPA
+    # information!
     sql_answers = """SELECT survey_question_id, survey_id, response
                      FROM ag.survey_answers"""
     pd_answers = pd.read_sql_query(sql_answers, con=engine)
@@ -32,7 +36,13 @@ def gather_agsurveys():
     pd_answers_all = pd.concat([pd_answers, pd_answers_other],
                                ignore_index=True)
 
-    # retrieve information which survey questions are of type MULTI
+    # Questions of type "Multiple" are special, because there is a defined set
+    # of valid answers, say a1, a2, a3. Participants can choose any sub-set of
+    # those answers. We want to get one column for each of the potential answer
+    # Assume the question has name q1, than we expect to get columns q1_a1,
+    # q1_a2, q1_a3. This requires a multi level index for the pandas table,
+    # where level 1 is the question name (here q1) and level 2 is (if question
+    # is of type multi) all possible answers, here a1, a2, a3.
     sql_question_type = """SELECT survey_question_id, response
                            FROM ag.survey_question_response_type
                            JOIN ag.survey_question_response
