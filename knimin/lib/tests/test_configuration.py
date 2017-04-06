@@ -61,6 +61,7 @@ class ConfigurationTests(TestCase):
         self.assertEqual(config.vioscreen_password, 'KLdemo17')
         self.assertEqual(config.vioscreen_regcode, 'KLUCB')
 
+
 test_config = """[main]
 debug = True
 help_email = help@email.com

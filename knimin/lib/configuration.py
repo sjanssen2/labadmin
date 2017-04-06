@@ -103,4 +103,5 @@ class KniminConfig(object):
         self.vioscreen_password = config.get('vioscreen', 'PASSWORD')
         self.vioscreen_regcode = config.get('vioscreen', 'REGCODE')
 
+
 config = KniminConfig()
