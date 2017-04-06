@@ -29,3 +29,9 @@ HOST = http://127.0.0.1:2990/jira
 USERNAME = admin
 PASSWORD = admin
 PASSKEY =
+
+[vioscreen]
+HOST = https://demo.api.viocare.com
+USERNAME = KLDEMO
+PASSWORD = KLdemo17
+REGCODE = KLUCB

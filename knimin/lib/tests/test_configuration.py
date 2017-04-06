@@ -54,6 +54,12 @@ class ConfigurationTests(TestCase):
         self.assertEqual(config.jira_password, 'admin')
         self.assertEqual(config.jira_passkey, 'mykey')
 
+    def test_get_vioscreen(self):
+        config = KniminConfig(self.config_fp)
+        self.assertEqual(config.vioscreen_host, 'https://demo.api.viocare.com')
+        self.assertEqual(config.vioscreen_user, 'KLDEMO')
+        self.assertEqual(config.vioscreen_password, 'KLdemo17')
+        self.assertEqual(config.vioscreen_regcode, 'KLUCB')
 
 test_config = """[main]
 debug = True
@@ -83,6 +89,12 @@ HOST = http://127.0.0.1:2990/jira
 USERNAME = admin
 PASSWORD = admin
 PASSKEY = mykey
+
+[vioscreen]
+HOST = https://demo.api.viocare.com
+USERNAME = KLDEMO
+PASSWORD = KLdemo17
+REGCODE = KLUCB
 """
 
 

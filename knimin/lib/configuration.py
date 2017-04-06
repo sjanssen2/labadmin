@@ -63,6 +63,7 @@ class KniminConfig(object):
         self._get_tornado(config)
         self._get_email(config)
         self._get_jira(config)
+        self._get_vioscreen(config)
 
     def _get_main(self, config):
         """Get the configuration of the main section"""
@@ -96,5 +97,10 @@ class KniminConfig(object):
         self.jira_password = config.get('jira', 'PASSWORD')
         self.jira_passkey = config.get('jira', 'PASSKEY')
 
+    def _get_vioscreen(self, config):
+        self.vioscreen_host = config.get('vioscreen', 'HOST')
+        self.vioscreen_user = config.get('vioscreen', 'USERNAME')
+        self.vioscreen_password = config.get('vioscreen', 'PASSWORD')
+        self.vioscreen_regcode = config.get('vioscreen', 'REGCODE')
 
 config = KniminConfig()
